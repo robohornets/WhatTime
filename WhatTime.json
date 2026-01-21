@@ -1,18 +1,18 @@
 {
     "fileName": "WhatTime.json",
     "name": "WhatTime",
-    "version": "v2026.1.11",
+    "version": "v2026.1.12",
     "frcYear": 2026,
     "uuid": "2C0B26E9-47AA-4C55-B235-640C45ECAD33",
     "mavenUrls": [
-        "https://jitpack.io/"
+        "https://github.com/robohornets/WhatTime/releases/download/v2026.1.12/"
     ],
     "jsonUrl": "https://raw.githubusercontent.com/robohornets/WhatTime/refs/heads/main/WhatTime.json",
     "javaDependencies": [
         {
-            "groupId": "com.github.robohornets",
+            "groupId": "com.btwrobotics.WhatTime.frc",
             "artifactId": "WhatTime",
-            "version": "v2026.1.11"
+            "version": "v2026.1.12"
         }
     ],
     "jniDependencies": [],

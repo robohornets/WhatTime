@@ -18,7 +18,7 @@ public class MatchTimeManager extends SubsystemBase {
      *  Schedules a trigger to run with a certain time (in seconds) remaining in the match
      * @param timeRemaining the time remaining in the match in seconds
      * @param eventCommand a WPILib Command that will run at the time of the event
-     * @param triggerName a description of the trigger for reference in a List
+     * @param triggerName an optional description of the trigger for reference in a List
      */
     public void scheduleEventAtTime(double timeRemaining, Command eventCommand, String triggerName) {
         String triggerDescription = "Trigger: " + timeRemaining + "s - " + triggerName;
