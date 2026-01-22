@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.btwrobotics.WhatTime.frc'
-version = '2026.1.12-beta.4'
+version = project.findProperty('version') ?: '2026.1.12-beta.4'
 
 java {
   toolchain.languageVersion.set(JavaLanguageVersion.of(17))

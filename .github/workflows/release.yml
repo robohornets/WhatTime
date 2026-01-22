@@ -23,17 +23,17 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
-      - name: Build with Gradle
-        run: ./gradlew build
-
-      - name: Publish with Gradle
-        run: ./gradlew publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
       - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build with Gradle
+        run: ./gradlew build -Pversion=${{ steps.version.outputs.VERSION }}
+
+      - name: Publish with Gradle
+        run: ./gradlew publish -Pversion=${{ steps.version.outputs.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Upload JAR to Release
         uses: softprops/action-gh-release@v1
