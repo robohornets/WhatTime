@@ -30,11 +30,26 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build -Pversion=${{ steps.version.outputs.VERSION }}
 
-      - name: Publish with Gradle
+      - name: Publish to GitHub Packages
         run: ./gradlew publish -Pversion=${{ steps.version.outputs.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
+      - name: Publish to local Maven repository for GitHub Pages
+        run: ./gradlew publishToMavenLocal -Pversion=${{ steps.version.outputs.VERSION }}
+
+      - name: Copy Maven repository structure
+        run: |
+          mkdir -p maven-repo
+          cp -r ~/.m2/repository/com maven-repo/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./maven-repo
+          keep_files: true
+
       - name: Upload JAR to Release
         uses: softprops/action-gh-release@v1
         with:
