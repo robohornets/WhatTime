@@ -3,7 +3,7 @@ plugins {
   id 'maven-publish'
 }
 
-group = 'com.btwrobotics.WhatTime.frc'
+group = 'com.btwrobotics.whattime.frc'
 version = project.findProperty('version') ?: '2026.1.12-beta.4'
 
 java {
@@ -11,7 +11,7 @@ java {
 }
 
 jar {
-  archiveBaseName.set('WhatTime')
+  archiveBaseName.set('whattime')
   archiveVersion.set(version)
 }
 
@@ -34,10 +34,10 @@ dependencies {
 publishing {
   publications {
     mavenJava(MavenPublication) {
-      groupId = 'com.btwrobotics.WhatTime.frc'
-      artifactId = 'WhatTime'
+      groupId = 'com.btwrobotics.whattime.frc'
+      artifactId = 'whattime'
       version = version
-      
+
       from components.java
     }
   }
