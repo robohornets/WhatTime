@@ -1,5 +1,5 @@
 # A Package by FRC team 1209
-[![](https://jitpack.io/v/robohornets/WhatTime.svg)](https://jitpack.io/#robohornets/WhatTime)
+![GitHub Release](https://img.shields.io/github/v/release/robohornets/WhatTime)
 
 This package contains several helpful functions for frc robots that use TalonFX motors.
 
