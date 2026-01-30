@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.btwrobotics.whattime.frc</groupId>
+  <artifactId>whattime</artifactId>
+  <versioning>
+    <latest>v2026.1.14-beta.1</latest>
+    <release>v2026.1.14-beta.1</release>
+    <versions>
+      <version>v2026.1.14-beta.1</version>
+    </versions>
+    <lastUpdated>20260130044826</lastUpdated>
+  </versioning>
+</metadata>
