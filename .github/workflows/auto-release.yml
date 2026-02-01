@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
 
     steps:
       - uses: actions/checkout@v3
@@ -85,3 +86,51 @@ jobs:
             $PRERELEASE_FLAG
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 17
+        if: steps.check_release.outputs.exists == 'false'
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        if: steps.check_release.outputs.exists == 'false'
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        if: steps.check_release.outputs.exists == 'false'
+        run: ./gradlew build -Pversion=${{ steps.get_version.outputs.VERSION }}
+
+      - name: Publish to GitHub Packages
+        if: steps.check_release.outputs.exists == 'false'
+        run: ./gradlew publish -Pversion=${{ steps.get_version.outputs.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to local Maven repository for GitHub Pages
+        if: steps.check_release.outputs.exists == 'false'
+        run: ./gradlew publishToMavenLocal -Pversion=${{ steps.get_version.outputs.VERSION }}
+
+      - name: Copy Maven repository structure
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          mkdir -p maven-repo
+          cp -r ~/.m2/repository/com maven-repo/
+
+      - name: Deploy to GitHub Pages
+        if: steps.check_release.outputs.exists == 'false'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./maven-repo
+          keep_files: true
+
+      - name: Upload JAR to Release
+        if: steps.check_release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          files: build/libs/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
