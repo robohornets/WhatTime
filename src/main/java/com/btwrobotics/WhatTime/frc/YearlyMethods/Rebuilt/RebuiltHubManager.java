@@ -142,6 +142,14 @@ public class RebuiltHubManager {
         return !currentInactiveAlliance.equals(AllianceManager.getCurrentAlliance());
     }
 
+    /**
+     * Tells which alliance is inactive first
+     * @return an {@code Optional<Alliance>} object of .Red or .Blue
+     */
+    public Optional<Alliance> getInactiveFirstAlliance() {
+        return inactiveFirstAlliance;
+    }
+
     public void putPhasesToNetworkTables() {
         NetworkTablesUtil.put("Upcoming Phases", matchTimeManager.pendingTriggerDescriptions);
         NetworkTablesUtil.put("Past Phases", matchTimeManager.completedTriggerDescriptions);
