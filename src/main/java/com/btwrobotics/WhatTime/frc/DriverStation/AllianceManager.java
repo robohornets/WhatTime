@@ -45,20 +45,27 @@ public class AllianceManager {
     /**
      * Changes between {@code Optional<Alliance.Red>} and {@code Optional<Alliance.Blue>}
      * @param alliance the alliance to toggle
-     * @return the opposite alliance. Falls back to {@code Optional<Alliance.Blue>}
+     * @return the opposite alliance. Returns {@code Optional.empty()} if input is empty
      */
     public static Optional<Alliance> toggleAlliance(Optional<Alliance> alliance) {
+        // Check if Optional is present before accessing
+        if (!alliance.isPresent()) {
+            return Optional.empty();
+        }
+
+        Alliance allianceValue = alliance.get();
+
         // Switch blue to red
-        if (alliance.get().equals(Alliance.Blue)) {
+        if (allianceValue.equals(Alliance.Blue)) {
             return Optional.of(Alliance.Red);
         }
         // Switch red to blue
-        else if (alliance.get().equals(Alliance.Red)) {
+        else if (allianceValue.equals(Alliance.Red)) {
             return Optional.of(Alliance.Blue);
         }
-        // Fallback to blue
+        // Fallback to empty
         else {
-            return Optional.of(Alliance.Blue);
+            return Optional.empty();
         }
     }
 }

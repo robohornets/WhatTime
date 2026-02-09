@@ -20,9 +20,10 @@ public class RebuiltHubManager {
         this.matchTimeManager = matchTimeManager;
     }
 
-    private Optional<Alliance> inactiveFirstAlliance;
+    private Optional<Alliance> inactiveFirstAlliance = Optional.empty();
 
-    /* Times
+    /*
+     * Times
      * 0 - Auto: Idk if it has a separate timer for auto
      * 1 - Transition Shift: 2:20-210 or 140s-130s
      * 2 - Phase 1: 2:10-1:45 or 130s-105s
@@ -30,23 +31,26 @@ public class RebuiltHubManager {
      * 4 - Phase 3: 1:20-0:55 or 80s-55s
      * 5 - Phase 4: 0:55-0:30 or 55s-30s
      * 6 - Endgame: 0:30-0:00 or 30s-0s
-    */
+     */
     public List<Double> sectionStartTimes = new ArrayList<>();
 
-
-    public Optional<Alliance> currentInactiveAlliance;
+    public Optional<Alliance> currentInactiveAlliance = Optional.empty();
 
     /**
      * Updates the alliance that is inactive first after autonomous.
      */
     public void updateInitialInactiveAlliance() {
-        // Gets R or B from DriverStation for which hub is inactive first. Runs at the end of auto.
+        // Gets R or B from DriverStation for which hub is inactive first
         String allianceString = DriverStation.getGameSpecificMessage();
+
+        // Data not available yet
+        if (allianceString == null || allianceString.isEmpty()) {
+            return;
+        }
 
         if (allianceString.equals("R")) {
             inactiveFirstAlliance = Optional.of(Alliance.Red);
-        }
-        else if (allianceString.equals("B")) {
+        } else if (allianceString.equals("B")) {
             inactiveFirstAlliance = Optional.of(Alliance.Blue);
         }
     }
@@ -57,93 +61,111 @@ public class RebuiltHubManager {
     public void scheduleAllInactiveHubChanges() {
         // Transition Shift: 140s-130s
         matchTimeManager.scheduleEventAtTime(
-            140, 
-            enableAllianceCommand(),
-            "Transition Shift"
-        );
+                140,
+                enableAllianceCommand(),
+                "Transition Shift");
 
         // Phase 1: 130s-105s
         matchTimeManager.scheduleEventAtTime(
-            130, 
-            startInactiveManager(),
-            "Teleop Phase 1"
-        );
+                130,
+                startInactiveManager(),
+                "Teleop Phase 1");
 
         // Phase 2: 105s-80s
         matchTimeManager.scheduleEventAtTime(
-            105, 
-            toggleAllianceCommand(),
-            "Teleop Phase 2"
-        );
+                105,
+                toggleAllianceCommand(),
+                "Teleop Phase 2");
 
         // Phase 3: 80s-55s
         matchTimeManager.scheduleEventAtTime(
-            80, 
-            toggleAllianceCommand(),
-            "Teleop Phase 3"
-        );
+                80,
+                toggleAllianceCommand(),
+                "Teleop Phase 3");
 
         // Phase 4: 55s-30s
         matchTimeManager.scheduleEventAtTime(
-            55, 
-            toggleAllianceCommand(),
-            "Teleop Phase 4"
-        );
+                55,
+                toggleAllianceCommand(),
+                "Teleop Phase 4");
 
         // Endgame: 30s-0s
         matchTimeManager.scheduleEventAtTime(
-            30, 
-            enableAllianceCommand(),
-            "Endgame"
-        );
+                30,
+                enableAllianceCommand(),
+                "Endgame");
     }
 
     // Runs at the start of phase 1 to set the first inactive alliance
     private Command startInactiveManager() {
         return Commands.runOnce(
-            () -> {
-                currentInactiveAlliance = inactiveFirstAlliance;
-            }
-        );
+                () -> {
+                    // Try to get data again if it is missing
+                    if (!inactiveFirstAlliance.isPresent()) {
+                        updateInitialInactiveAlliance();
+                    }
+
+                    currentInactiveAlliance = inactiveFirstAlliance;
+                });
     }
 
     // Switches between inactive alliances
     private Command toggleAllianceCommand() {
         return Commands.runOnce(
-            () -> {
-                AllianceManager.toggleAlliance(currentInactiveAlliance);
-            }
-        );
+                () -> {
+                    if (currentInactiveAlliance.isPresent()) {
+                        currentInactiveAlliance = AllianceManager.toggleAlliance(currentInactiveAlliance);
+                    } else {
+                        // Fallback: try to initialize from current alliance
+                        currentInactiveAlliance = AllianceManager.getOpposingAlliance();
+                    }
+                });
     }
 
     // Sets the current alliance to active
     private Command enableAllianceCommand() {
         return Commands.runOnce(
-            () -> {
-                currentInactiveAlliance = AllianceManager.getOpposingAlliance();
-            }
-        );
+                () -> {
+                    Optional<Alliance> opposingAlliance = AllianceManager.getOpposingAlliance();
+                    if (opposingAlliance.isPresent()) {
+                        currentInactiveAlliance = opposingAlliance;
+                    }
+                });
     }
 
     // Sets the current alliance to inactive
     private Command disableAllianceCommand() {
         return Commands.runOnce(
-            () -> {
-                currentInactiveAlliance = AllianceManager.getCurrentAlliance();
-            }
-        );
+                () -> {
+                    Optional<Alliance> currentAlliance = AllianceManager.getCurrentAlliance();
+                    if (currentAlliance.isPresent()) {
+                        currentInactiveAlliance = currentAlliance;
+                    }
+                });
     }
 
     /**
      * Indicates whether the current alliance's hub is active
+     * 
      * @return {@code true} when hub is active
      */
     public boolean hubIsActive() {
-        return !currentInactiveAlliance.equals(AllianceManager.getCurrentAlliance());
+        // Return false (inactive) if no current inactive alliance data
+        if (!currentInactiveAlliance.isPresent()) {
+            return false;
+        }
+
+        Optional<Alliance> currentAlliance = AllianceManager.getCurrentAlliance();
+        if (!currentAlliance.isPresent()) {
+            return false;
+        }
+
+        return !currentInactiveAlliance.get().equals(currentAlliance.get());
     }
 
     /**
      * Tells which alliance is inactive first
+     * 
      * @return an {@code Optional<Alliance>} object of .Red or .Blue
      */
     public Optional<Alliance> getInactiveFirstAlliance() {
