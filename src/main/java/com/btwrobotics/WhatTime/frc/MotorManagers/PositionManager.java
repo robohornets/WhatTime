@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
  * Manager for controlling motor-driven mechanisms to specific positions with limits.
@@ -23,7 +24,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
  * 
  * @see MotorWrapper
  */
-public class PositionManager {
+public class PositionManager extends SubsystemBase {
     /** The minimum allowed position value (lower limit). */
     private final double minValue;
     
@@ -41,6 +42,9 @@ public class PositionManager {
     
     /** The tolerance for determining if target position is reached. */
     private final double threshold;
+
+    /** The lowest speed allowed for the motor to prevent stalling. */
+    private final double minSpeed;
     
     /** Supplier that provides the current position value. */
     private final Supplier<Double> currentValueSupplier;
@@ -66,6 +70,7 @@ public class PositionManager {
         double motorSpeed,
         double holdSpeed,
         double threshold,
+        double minSpeed,
         Supplier<Double> currentValueSupplier
     ) {
         this.minValue = minValue;
@@ -75,48 +80,34 @@ public class PositionManager {
         this.motorSpeed = motorSpeed;
         this.holdSpeed = holdSpeed;
         this.threshold = threshold;
+        this.minSpeed = minSpeed;
         this.currentValueSupplier = currentValueSupplier;
-    }
-    
-    /** Internal flag tracking whether the current movement has completed. */
-    private boolean isFinishedToggle = false;
 
-    /**
-     * Checks if the current movement operation has finished.
-     * 
-     * @return true if the target position has been reached or movement is blocked, false otherwise
-     */
-    public boolean isFinished() {
-        return isFinishedToggle;
+        setDefaultCommand(positionTargetManagement());
     }
 
-    /**
-     * Creates a command to move motors to the specified target position.
+    /** 
+     * Sets the current target position
      * 
-     * <p>This method returns a command that continuously updates motor speeds
-     * to drive toward the target. The command will automatically:
-     * <ul>
-     *   <li>Respect upper and lower position limits
-     *   <li>Stop when within threshold of target
-     *   <li>Prevent movement beyond bounds
-     * </ul>
-     * 
-     * <p>The command runs indefinitely and should be ended based on the
-     * {@link #isFinished()} method or external conditions.
-     * 
-     * @param target the desired position to move to
-     * @return a command that moves motors toward the target
+     * The motor will move to and hold within the threshold of this position
      */
-    public Command move(double target) {
-        this.targetValue = target;
-        this.isFinishedToggle = false;
+    public void setTarget(double target) {
+        this.targetValue = Math.max(minValue, Math.min(maxValue, target));
+    }
 
+    public Command positionTargetManagement() {
         return Commands.run(() -> {
-            updateMotorSpeed();
-        });
+            double currentValue = currentValueSupplier.get();
+
+            if (Math.abs(currentValue - targetValue) <= threshold) {
+                setAllMotors(holdSpeed);
+                return;
+            }
+
+            double speed = calculateSpeedWithAcceleration();
+            setAllMotors(speed);
+        }, this);
     }
-
-
     
     /**
      * Gets the current target position.
@@ -127,73 +118,21 @@ public class PositionManager {
         return targetValue;
     }
 
+    
+    private double calculateSpeedWithAcceleration() {
+        double distanceDifference = getTarget() - currentValueSupplier.get();
+        
+        // Kim Possible
+        double kP = 0.01;
+        double speed = kP * distanceDifference;
 
-    /**
-     * Stops motor movement and applies hold speed.
-     * 
-     * <p>Sets all motors to the configured hold speed, typically used
-     * to maintain position against gravity or other forces.
-     */
-    public void stop() {
-        setAllMotors(holdSpeed);
-    }
+        // Clamp to prevent stalling at low values
+        speed = Math.max(-motorSpeed, Math.min(motorSpeed, speed));
 
-    /**
-     * Updates motor speeds based on current position and target.
-     * 
-     * <p>This method implements the position control logic:
-     * <ol>
-     *   <li>If within threshold of target, stops motors and finishes
-     *   <li>If at upper limit, only allows downward movement
-     *   <li>If at lower limit, only allows upward movement
-     *   <li>Otherwise, moves toward target at configured speed
-     * </ol>
-     * 
-     * <p>This method is called repeatedly by the command returned from {@link #move(double)}.
-     */
-    private void updateMotorSpeed() {
-        double currentValue = currentValueSupplier.get();
-
-        // 1. Within threshold of target. Terminates command.
-        if (Math.abs(currentValue - targetValue) <= threshold) {
-            setAllMotors(0.0);
-            isFinishedToggle = true;
-            return;
+        if (Math.abs(speed) < minSpeed) {
+            speed = Math.copySign(minSpeed, speed);
         }
-
-        boolean needToMoveUp = currentValue < targetValue;
-        boolean needToMoveDown = currentValue > targetValue;
-
-        // 2. At or above upper limit. Move down only.
-        if (currentValue >= maxValue) {
-            if (needToMoveDown) {
-                setAllMotors(-motorSpeed);
-            } else {
-                // Want to move up but at max limit. Stop and finish
-                setAllMotors(holdSpeed);
-                isFinishedToggle = true;
-            }
-            return;
-        }
-
-        // 3. At or below lower limit. Move up only.
-        if (currentValue <= minValue) {
-            if (needToMoveUp) {
-                setAllMotors(motorSpeed);
-            } else {
-                // Want to move down but at min limit - stop and finish
-                setAllMotors(holdSpeed);
-                isFinishedToggle = true;
-            }
-            return;
-        }
-
-        // 4. Within normal range. Move toward target.
-        if (needToMoveDown) {
-            setAllMotors(-motorSpeed);
-        } else {
-            setAllMotors(motorSpeed);
-        }
+        return speed;
     }
 
     /**
