@@ -105,4 +105,9 @@ public class FlywheelPair {
         motor1.set(0);
         motor2.set(0);
     }
+
+
+    public void setSpeed(double newSpeed) {
+        speed = newSpeed;
+    }
 }
