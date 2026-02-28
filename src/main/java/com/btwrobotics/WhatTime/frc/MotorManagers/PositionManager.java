@@ -95,7 +95,7 @@ public class PositionManager extends SubsystemBase {
         this.targetValue = Math.max(minValue, Math.min(maxValue, target));
     }
 
-    public Command positionTargetManagement() {
+    private Command positionTargetManagement() {
         return Commands.run(() -> {
             double currentValue = currentValueSupplier.get();
 
@@ -105,6 +105,10 @@ public class PositionManager extends SubsystemBase {
             }
 
             double speed = calculateSpeedWithAcceleration();
+
+            if (currentValue >= maxValue && speed > 0) speed = 0;
+            if (currentValue <= minValue && speed < 0) speed = 0;
+
             setAllMotors(speed);
         }, this);
     }

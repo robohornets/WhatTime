@@ -94,6 +94,6 @@ public class MotorWrapper {
      * @return the current motor output value
      */
     public double getPosition() {
-        return motor.get();
+        return motor.getPosition().getValueAsDouble();
     }
 }
