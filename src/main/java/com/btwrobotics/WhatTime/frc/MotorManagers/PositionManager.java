@@ -45,7 +45,10 @@ public class PositionManager extends SubsystemBase {
 
     /** The lowest speed allowed for the motor to prevent stalling. */
     private final double minSpeed;
-    
+
+    /** Kim Possible - A tuning constant for the acceleration calculation of the motor. */
+    public final double kP;
+
     /** Supplier that provides the current position value. */
     private final Supplier<Double> currentValueSupplier;
     
@@ -71,6 +74,7 @@ public class PositionManager extends SubsystemBase {
         double holdSpeed,
         double threshold,
         double minSpeed,
+        double kP,
         Supplier<Double> currentValueSupplier
     ) {
         this.minValue = minValue;
@@ -81,6 +85,7 @@ public class PositionManager extends SubsystemBase {
         this.holdSpeed = holdSpeed;
         this.threshold = threshold;
         this.minSpeed = minSpeed;
+        this.kP = kP;
         this.currentValueSupplier = currentValueSupplier;
 
         setDefaultCommand(positionTargetManagement());
@@ -126,8 +131,6 @@ public class PositionManager extends SubsystemBase {
     private double calculateSpeedWithAcceleration() {
         double distanceDifference = getTarget() - currentValueSupplier.get();
         
-        // Kim Possible
-        double kP = 0.01;
         double speed = kP * distanceDifference;
 
         // Clamp to prevent stalling at low values
