@@ -1,0 +1,111 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.btwrobotics.whattime.frc",
+    "module": "whattime",
+    "version": "v2026.1.16-beta.5",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.5"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "whattime-v2026.1.16-beta.5.jar",
+          "url": "whattime-v2026.1.16-beta.5.jar",
+          "size": 20367,
+          "sha512": "a211083f6d3f6db68407a11f205dd64bdfe63e56e6356767cdb06119ff36a34a944e7a5b3a27b0b9e3eb7a3ac85465bf865d3decf279b7e6ede47449b558209f",
+          "sha256": "ca3fd46f382077f0c617efcb36a66cf0b7dfba8347f5bf031b90c976300cc84e",
+          "sha1": "8ff6091d9d814ff7274bdaa46bc3e3bceb20f36a",
+          "md5": "2450e3ca36c88556540b717587ffc02c"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "edu.wpi.first.wpiutil",
+          "module": "wpiutil-java",
+          "version": {
+            "requires": "2026.1.1"
+          }
+        },
+        {
+          "group": "edu.wpi.first.wpilibj",
+          "module": "wpilibj-java",
+          "version": {
+            "requires": "2026.1.1"
+          }
+        },
+        {
+          "group": "edu.wpi.first.wpilibNewCommands",
+          "module": "wpilibNewCommands-java",
+          "version": {
+            "requires": "2026.1.1"
+          }
+        },
+        {
+          "group": "edu.wpi.first.ntcore",
+          "module": "ntcore-java",
+          "version": {
+            "requires": "2026.1.1"
+          }
+        },
+        {
+          "group": "edu.wpi.first.wpimath",
+          "module": "wpimath-java",
+          "version": {
+            "requires": "2026.1.1"
+          }
+        },
+        {
+          "group": "edu.wpi.first.wpiunits",
+          "module": "wpiunits-java",
+          "version": {
+            "requires": "2026.1.1"
+          }
+        },
+        {
+          "group": "com.ctre.phoenix6",
+          "module": "wpiapi-java",
+          "version": {
+            "requires": "26.1.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "whattime-v2026.1.16-beta.5.jar",
+          "url": "whattime-v2026.1.16-beta.5.jar",
+          "size": 20367,
+          "sha512": "a211083f6d3f6db68407a11f205dd64bdfe63e56e6356767cdb06119ff36a34a944e7a5b3a27b0b9e3eb7a3ac85465bf865d3decf279b7e6ede47449b558209f",
+          "sha256": "ca3fd46f382077f0c617efcb36a66cf0b7dfba8347f5bf031b90c976300cc84e",
+          "sha1": "8ff6091d9d814ff7274bdaa46bc3e3bceb20f36a",
+          "md5": "2450e3ca36c88556540b717587ffc02c"
+        }
+      ]
+    }
+  ]
+}
