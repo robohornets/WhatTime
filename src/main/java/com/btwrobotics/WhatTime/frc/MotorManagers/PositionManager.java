@@ -54,6 +54,9 @@ public class PositionManager extends SubsystemBase {
     
     /** The current target position for the motors to reach. */
     private double targetValue;
+
+    /** Whether the mechanism is currently holding at the target position. */
+    private boolean isHolding = false;
     
     /**
      * Creates a new PositionManager.
@@ -98,13 +101,21 @@ public class PositionManager extends SubsystemBase {
      */
     public void setTarget(double target) {
         this.targetValue = Math.max(minValue, Math.min(maxValue, target));
+        this.isHolding = false;
     }
 
     private Command positionTargetManagement() {
         return Commands.run(() -> {
             double currentValue = currentValueSupplier.get();
+            double error = Math.abs(currentValue - targetValue);
 
-            if (Math.abs(currentValue - targetValue) <= threshold) {
+            if (error <= threshold) {
+                isHolding = true;
+            } else if (error > threshold * 2) {
+                isHolding = false;
+            }
+
+            if (isHolding) {
                 setAllMotors(holdSpeed);
                 return;
             }
