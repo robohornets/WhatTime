@@ -55,6 +55,9 @@ public class PositionManager extends SubsystemBase {
     /** The current target position for the motors to reach. */
     private double targetValue;
 
+    /** Whether a target has been explicitly set. Until set, motors stay put. */
+    private boolean hasTarget = false;
+
     /** Whether the mechanism is currently holding at the target position. */
     private boolean isHolding = false;
     
@@ -83,7 +86,7 @@ public class PositionManager extends SubsystemBase {
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.motors = motors;
-        this.targetValue = minValue; // target value is initially the minimum value
+        this.targetValue = minValue;
         this.motorSpeed = motorSpeed;
         this.holdSpeed = holdSpeed;
         this.threshold = threshold;
@@ -107,12 +110,18 @@ public class PositionManager extends SubsystemBase {
      */
     public void setTarget(double target) {
         this.targetValue = Math.max(minValue, Math.min(maxValue, target));
+        this.hasTarget = true;
         this.isHolding = false;
     }
 
     private Command positionTargetManagement() {
         if (!isDisabled) {
             return Commands.run(() -> {
+                if (!hasTarget) {
+                    setAllMotors(0);
+                    return;
+                }
+
                 double currentValue = currentValueSupplier.get();
                 double error = Math.abs(currentValue - targetValue);
 
