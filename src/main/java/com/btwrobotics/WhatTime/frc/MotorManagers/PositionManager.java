@@ -115,42 +115,41 @@ public class PositionManager extends SubsystemBase {
     }
 
     private Command positionTargetManagement() {
-        if (!isDisabled) {
-            return Commands.run(() -> {
-                if (!hasTarget) {
-                    setAllMotors(0);
-                    return;
-                }
+        return Commands.run(() -> {
+            if (isDisabled) {
+                setAllMotors(0);
+                return;
+            }
+            if (!hasTarget) {
+                setAllMotors(0);
+                return;
+            }
 
-                double currentValue = currentValueSupplier.get();
-                double error = Math.abs(currentValue - targetValue);
+            double currentValue = currentValueSupplier.get();
+            double error = Math.abs(currentValue - targetValue);
 
-                if (error <= threshold) {
-                    isHolding = true;
-                } else if (error > threshold * 2) {
-                    isHolding = false;
-                }
+            if (error <= threshold) {
+                isHolding = true;
+            } else if (error > threshold * 2) {
+                isHolding = false;
+            }
 
-                if (isHolding) {
-                    setAllMotors(holdSpeed);
-                    return;
-                }
-
-                double speed = calculateSpeedWithAcceleration();
-
+            if (isHolding) {
+                double speed = holdSpeed;
                 if (currentValue >= maxValue && speed > 0) speed = 0;
                 if (currentValue <= minValue && speed < 0) speed = 0;
-
                 setAllMotors(speed);
-            }, this);
-        }
-        else {
-            return Commands.run(
-                () -> {
-                    setAllMotors(0.0);
-                }
-            );
-        }
+                return;
+            }
+
+            double speed = calculateSpeedWithAcceleration();
+
+            if (currentValue >= maxValue && speed > 0) speed = 0;
+            if (currentValue <= minValue && speed < 0) speed = 0;
+
+            setAllMotors(speed);
+            
+        }, this);
     }
     
     /**
