@@ -1,4 +1,8 @@
 # A Package by FRC team 1209
+
+## The Java version of this library is no longer being supported
+## and is very messy, please use the python version instead
+
 [![Auto Create Release](https://github.com/robohornets/WhatTime/actions/workflows/auto-release.yml/badge.svg)](https://github.com/robohornets/WhatTime/actions/workflows/auto-release.yml) 
 [![pages-build-deployment](https://github.com/robohornets/WhatTime/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages)](https://github.com/robohornets/WhatTime/actions/workflows/pages/pages-build-deployment) 
 ![GitHub Release](https://img.shields.io/github/v/release/robohornets/WhatTime)
