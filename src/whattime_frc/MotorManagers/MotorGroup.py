@@ -1,6 +1,8 @@
 from .Motor import Motor
 from commands2 import Command, Subsystem
 from commands2 import cmd as Commands
+from phoenix6.signals import NeutralModeValue
+
 from typing import overload, Callable
 from numbers import Real
 import math
@@ -143,6 +145,32 @@ class MotorGroup(Subsystem):
         self._targetValue = self._wrapValue(target) if self._looping else max(self._minValue, min(self._maxValue, target))
         self._hasTarget = True
         self._isHolding = False
+
+    def setNeutralModeBulk(self, neutralModeValue: NeutralModeValue):
+        # Set the neutral mode for all of the motors
+        if not isinstance(neutralModeValue, NeutralModeValue): raise TypeError("neutralNodeValue must be of type NeutralModeValue")
+        for motor in self._motors:
+            motor.getTalonFX().setNeutralMode(neutralModeValue)
+
+    def brakelessReset(self, duration: int | float) -> Command:
+        # Temporarily disable brakes so the mechanism can settle naturally.
+        if not isinstance(duration, (int, float)):
+            raise TypeError("duration must be an int or float.")
+        duration = float(duration)
+        if duration < 0.0:
+            raise ValueError("duration must be >= 0.")
+
+        return Commands.sequence(
+            Commands.runOnce(
+                lambda: self.setNeutralModeBulk(NeutralModeValue.COAST),
+                self,
+            ),
+            Commands.waitSeconds(duration),
+            Commands.runOnce(
+                lambda: self.setNeutralModeBulk(NeutralModeValue.BRAKE),
+                self,
+            ),
+        )
 
     def _defaultCommand(self):
         if not self._isEnabled:

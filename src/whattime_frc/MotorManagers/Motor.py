@@ -10,7 +10,7 @@ class Motor:
         actualSpeed = -speed if self.inverted else speed
         self._motor.set(actualSpeed)
 
-    def getMotor(self) -> TalonFX:
+    def getTalonFX(self) -> TalonFX:
         return self._motor
 
     def isInverted(self) -> bool:
