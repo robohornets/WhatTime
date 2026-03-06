@@ -21,18 +21,10 @@ class MotorGroup(Subsystem):
 
         self._motors = motors
 
-    def toggleEnabled(self) -> bool:
-        states = [motor.toggleEnabled() for motor in self._motors]
+    def toggleEnabled(self, enabled: bool | None = None) -> bool:
+        states = [motor.toggleEnabled(enabled) for motor in self._motors]
         return all(states)
-
-    def enable(self) -> None:
-        for motor in self._motors:
-            motor.enable()
-
-    def disable(self) -> None:
-        for motor in self._motors:
-            motor.disable()
-
+    
     def isEnabled(self) -> bool:
         return all(motor.isEnabled() for motor in self._motors)
 

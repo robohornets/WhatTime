@@ -75,20 +75,27 @@ class Motor(Subsystem):
         self._isHolding = False
         self._isEnabled = False
 
+        self._deccelerateSteps = 50
+
         self.setDefaultCommand(Commands.run(self._defaultCommand, self))
 
-    def toggleEnabled(self) -> bool:
-        self._isEnabled = not self._isEnabled
+    def toggleEnabled(self, enabled: bool | None = None) -> bool:
+        if enabled is None:
+            self._isEnabled = not self._isEnabled
+        else:
+            self._isEnabled = enabled
         return self._isEnabled
-
-    def enable(self) -> None:
-        self._isEnabled = True
-
-    def disable(self) -> None:
-        self._isEnabled = False
-
+    
     def isEnabled(self) -> bool:
         return self._isEnabled
+    
+    def config(self, config: dict[str, bool | float]) -> None:
+        for key in config.keys():
+            if hasattr(self, f"_{key}"):
+                setattr(self, f"_{key}", config[key])
+            else:
+                warnings.warn(f"Motor has no property '{key}', skipping")
+                continue
 
     @overload
     def drive(self) -> None: ...
@@ -146,7 +153,7 @@ class Motor(Subsystem):
             Commands.runOnce(lambda: self.setNeutralMode(NeutralModeValue.BRAKE), self),
         )
 
-    def update(self) -> float:
+    def _update(self) -> float:
         speed = 0.0
 
         if not self._isEnabled or not self._hasTarget:
@@ -181,7 +188,7 @@ class Motor(Subsystem):
         return speed
 
     def _defaultCommand(self) -> None:
-        self.update()
+        self._update()
 
     def _calculateSpeedWithAcceleration(self, currentValue: float) -> float:
         distanceDifference = self._positionError(currentValue, self._targetValue)
