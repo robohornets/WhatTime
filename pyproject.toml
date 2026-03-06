@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whattime-frc"
+version = "2026.1.0"
+description = "WhatTime utility library for FRC RobotPy projects"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "FRC Team 1209" }
+]
+dependencies = [
+    "pyntcore>=2026.2.1.1,<2027"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["whattime_frc*"]
+
+[tool.robotpy]
+robotpy_version = "2026.2.1.1"
+components = []
+requires = []
