@@ -93,3 +93,5 @@ class MotorGroup(Subsystem):
                 self,
             ),
         )
+    def getMotors(self):
+        return self._motors
