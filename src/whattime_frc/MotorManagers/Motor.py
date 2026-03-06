@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from numbers import Real
 from typing import Callable, overload
 import math
 import warnings
@@ -9,6 +8,7 @@ from commands2 import Command, Subsystem
 from commands2 import cmd as Commands
 from phoenix6.hardware import TalonFX
 from phoenix6.signals import NeutralModeValue
+from phoenix6 import CANBus
 
 _UNSET = object()
 
@@ -16,7 +16,8 @@ _UNSET = object()
 class Motor(Subsystem):
     def __init__(
         self,
-        *talonfx_args,
+        device_id: int,
+        canbus: CANBus | str = CANBus(),
         inverted: bool = False,
         minValue: float = -1.0,
         maxValue: float = 1.0,
@@ -26,31 +27,16 @@ class Motor(Subsystem):
         holdSpeed: float = 0.0,
         threshold: float = 0.025,
         pG: float = 1.0,
-        currentValueSupplier: Callable[[], float] | None = None,
-        **talonfx_kwargs,
+        currentValueSupplier: Callable[[], float] | None = None
     ) -> None:
         super().__init__()
 
-        if not isinstance(inverted, bool):
-            raise TypeError("inverted must be a bool.")
-        if not isinstance(free, bool):
-            raise TypeError("free must be a bool.")
-
-        if not isinstance(minValue, Real) or isinstance(minValue, bool):
-            raise TypeError("minValue must be a real number.")
-        if not isinstance(maxValue, Real) or isinstance(maxValue, bool):
-            raise TypeError("maxValue must be a real number.")
         if not math.isfinite(float(minValue)) or not math.isfinite(float(maxValue)):
             raise ValueError("minValue and maxValue must be finite.")
         if float(maxValue) <= float(minValue):
             raise ValueError("maxValue must be greater than minValue.")
 
-        if not isinstance(motorSpeed, Real) or isinstance(motorSpeed, bool):
-            raise TypeError("motorSpeed must be a real number.")
-        if not isinstance(minSpeed, Real) or isinstance(minSpeed, bool):
-            raise TypeError("minSpeed must be a real number.")
-        if not isinstance(holdSpeed, Real) or isinstance(holdSpeed, bool):
-            raise TypeError("holdSpeed must be a real number.")
+
         if not math.isfinite(float(motorSpeed)) or not math.isfinite(float(minSpeed)) or not math.isfinite(float(holdSpeed)):
             raise ValueError("motorSpeed, minSpeed, and holdSpeed must be finite.")
         if float(motorSpeed) < 0.0:
@@ -60,22 +46,18 @@ class Motor(Subsystem):
         if float(minSpeed) > float(motorSpeed):
             raise ValueError("minSpeed cannot exceed motorSpeed.")
 
-        if not isinstance(threshold, Real) or isinstance(threshold, bool):
-            raise TypeError("threshold must be a real number.")
         if not math.isfinite(float(threshold)):
             raise ValueError("threshold must be finite.")
         if float(threshold) < 0.0:
             raise ValueError("threshold must be >= 0.")
 
-        if not isinstance(pG, Real) or isinstance(pG, bool):
-            raise TypeError("pG must be a real number.")
         if not math.isfinite(float(pG)):
             raise ValueError("pG must be finite.")
 
         if currentValueSupplier is not None and not callable(currentValueSupplier):
             raise TypeError("currentValueSupplier must be callable or None.")
 
-        self._motor = TalonFX(*talonfx_args, **talonfx_kwargs)
+        self._motor = TalonFX(device_id, canbus)
         self._inverted = inverted
 
         self._minValue = float(minValue)
@@ -142,8 +124,6 @@ class Motor(Subsystem):
         if not self._isEnabled:
             warnings.warn("Motor is disabled.", RuntimeWarning)
             return
-        if not isinstance(target, (int, float)):
-            raise TypeError("target must be an int or float.")
 
         target = float(target)
         # In free mode, wrap the target so movement takes the fastest circular path.
@@ -153,13 +133,9 @@ class Motor(Subsystem):
         self._isHolding = False
 
     def setNeutralMode(self, neutralModeValue: NeutralModeValue) -> None:
-        if not isinstance(neutralModeValue, NeutralModeValue):
-            raise TypeError("neutralModeValue must be of type NeutralModeValue")
         self._motor.setNeutralMode(neutralModeValue)
 
     def brakelessReset(self, duration: int | float) -> Command:
-        if not isinstance(duration, Real) or isinstance(duration, bool):
-            raise TypeError("duration must be an int or float.")
         duration = float(duration)
         if duration < 0.0:
             raise ValueError("duration must be >= 0.")
@@ -231,8 +207,6 @@ class Motor(Subsystem):
         return ((value - self._minValue) % span) + self._minValue
 
     def set(self, speed: float) -> None:
-        if not isinstance(speed, (int, float)):
-            raise TypeError("speed must be an int or float.")
         speed = float(speed)
         actualSpeed = -speed if self._inverted else speed
         self._motor.set(actualSpeed)

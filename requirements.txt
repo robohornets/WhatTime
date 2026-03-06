@@ -7,8 +7,6 @@ importlib_resources==6.5.2
 iniconfig==2.3.0
 invoke==2.2.1
 librt==0.8.1
-mypy==1.19.1
-mypy_extensions==1.1.0
 numpy==2.4.2
 packaging==26.0
 paramiko==4.0.0

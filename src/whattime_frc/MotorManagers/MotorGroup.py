@@ -16,12 +16,8 @@ class MotorGroup(Subsystem):
     def __init__(self, motors: list[Motor]) -> None:
         super().__init__()
 
-        if not isinstance(motors, list):
-            raise TypeError("motors must be a list[Motor].")
         if len(motors) == 0:
             raise ValueError("motors cannot be empty.")
-        if not all(isinstance(m, Motor) for m in motors):
-            raise TypeError("all entries in motors must be Motor instances.")
 
         self._motors = motors
 
@@ -52,7 +48,7 @@ class MotorGroup(Subsystem):
                 motor.drive()
             return
 
-        if not isinstance(speed, Real) or isinstance(speed, bool):
+        if not isinstance(speed, Real):
             raise TypeError("speed must be an int or float.")
 
         scalar_speed = float(speed)
@@ -60,7 +56,7 @@ class MotorGroup(Subsystem):
             motor.drive(scalar_speed)
 
     def goto(self, target: int | float) -> None:
-        if not isinstance(target, Real) or isinstance(target, bool):
+        if not isinstance(target, Real):
             raise TypeError("target must be an int or float.")
 
         scalar_target = float(target)
@@ -68,14 +64,12 @@ class MotorGroup(Subsystem):
             motor.goto(scalar_target)
 
     def setNeutralMode(self, neutralModeValue: NeutralModeValue) -> None:
-        if not isinstance(neutralModeValue, NeutralModeValue):
-            raise TypeError("neutralModeValue must be of type NeutralModeValue")
 
         for motor in self._motors:
             motor.setNeutralMode(neutralModeValue)
 
     def brakelessReset(self, duration: int | float) -> Command:
-        if not isinstance(duration, Real) or isinstance(duration, bool):
+        if not isinstance(duration, Real):
             raise TypeError("duration must be an int or float.")
 
         duration = float(duration)
