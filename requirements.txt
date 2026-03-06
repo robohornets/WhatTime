@@ -6,9 +6,13 @@ flexparser==0.4
 importlib_resources==6.5.2
 iniconfig==2.3.0
 invoke==2.2.1
+librt==0.8.1
+mypy==1.19.1
+mypy_extensions==1.1.0
 numpy==2.4.2
 packaging==26.0
 paramiko==4.0.0
+pathspec==1.0.4
 phoenix6==26.1.1
 Pint==0.25.2
 platformdirs==4.9.4
@@ -44,5 +48,4 @@ tomli==2.4.0
 tomlkit==0.14.0
 toposort==1.10
 typing_extensions==4.15.0
--e git+https://github.com/robohornets/WhatTime.git@51e38e0d2e621a97dc3b50e85c581d3b7385e9ab#egg=whattime_frc
 wpilib==2026.2.1.1
