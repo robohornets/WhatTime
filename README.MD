@@ -1,43 +1,22 @@
 # WhatTime (Python)
 
-WhatTime is a RobotPy utility package for common FRC patterns:
-- Motor abstraction for CTRE Phoenix 6 (`TalonFX`)
-- Group control for multiple motors
-- Driver station alliance helpers
+WhatTime is a RobotPy utility package for common FRC patterns.
 
-This repository is currently Python-first and command-based (`commands2`).
-
-## Use Cases
-
-### 1. Single-motor position control with safety limits
-Use `Motor` when you want one motor to:
-- move to a target (`goto`)
-- optionally run open-loop speed (`drive`, free mode only)
-- enforce min/max bounds when not in free mode
-- apply hold behavior and P-gain based correction in a default command
-
-### 2. Synchronized control across multiple motors
-Use `MotorGroup` when you want to run the same command across a list of `Motor` objects:
-- enable/disable all motors
-- broadcast `goto`/`drive`
-- bulk neutral mode changes
-- run a group brakeless reset command
-
-### 3. Alliance-aware robot behavior
-Use `AllianceManager` to:
-- query current alliance
-- get the opposing alliance
-- toggle alliance values safely
+Current modules:
+- CTRE Phoenix 6 `TalonFX` motor abstraction (`Motor`)
+- Multi-motor orchestration (`MotorGroup`)
+- Driver Station alliance helpers (`AllianceManager`)
+- Yearly methods (`RebuiltHubManager`)
 
 ## Installation
 
-### For local development
 ```bash
 pip install -e .
 ```
 
-### In a robot project
-Add this package to your robot project's dependencies (editable path or published package), then import from `whattime_frc`.
+Project metadata:
+- Package: `whattime-frc`
+- Python: `>=3.11`
 
 ## Package Structure
 
@@ -48,141 +27,90 @@ src/whattime_frc/
   MotorManagers/
     Motor.py
     MotorGroup.py
+  YearlyMethods/
+    Rebuilt/
+      RebuiltHubManager.py
 ```
 
-## Motor API
-
-Import:
-```python
-from whattime_frc.MotorManagers import Motor
-```
-
-### Constructor
-`Motor(*talonfx_args, ..., **talonfx_kwargs)` forwards positional/keyword args directly to `TalonFX`, plus WhatTime settings:
-- `inverted: bool = False`
-- `minValue: float = -1.0`
-- `maxValue: float = 1.0`
-- `minSpeed: float = 0.0`
-- `motorSpeed: float = 1.0`
-- `free: bool = False`
-- `holdSpeed: float = 0.0`
-- `threshold: float = 0.025`
-- `pG: float = 1.0`
-- `currentValueSupplier: Callable[[], float] | None = None`
-
-### Behavior notes
-- `Motor` is a `commands2.Subsystem`.
-- A default command is installed automatically and calls `update()`.
-- Motors start disabled (`_isEnabled = False`). You must call `enable()` or `toggleEnabled()`.
-- If `free=False`:
-  - `drive()` is disabled (raises `RuntimeError`)
-  - `goto(target)` clamps to `[minValue, maxValue]`
-- If `free=True`:
-  - `drive()` is allowed
-  - `goto(target)` wraps for fastest path behavior
-
-### Example: bounded position motor
-```python
-from whattime_frc.MotorManagers import Motor
-
-arm = Motor(
-    12,                  # TalonFX device ID
-    "canivore",         # optional CAN bus
-    minValue=0.0,
-    maxValue=1.0,
-    motorSpeed=0.5,
-    minSpeed=0.05,
-    holdSpeed=0.03,
-    threshold=1.0,
-    pG=0.015,
-    free=False,
-)
-
-arm.enable()
-arm.goto(0.5) # 90 degrees
-```
-
-### Example: free/continuous motor
-```python
-wheel = Motor(
-    8,
-    free=True,
-    motorSpeed=0.4,
-)
-
-wheel.enable()
-wheel.drive()      # uses motorSpeed default (0.4)
-# wheel.drive(0.25)
-# wheel.goto(3.14)  # allowed in free mode; wraps for shortest path
-```
-
-## MotorGroup API
+## MotorManagers
 
 Import:
 ```python
 from whattime_frc.MotorManagers import Motor, MotorGroup
 ```
 
-### Constructor
-```python
-group = MotorGroup([motor_a, motor_b, motor_c])
-```
+### `Motor`
 
-### Group methods
-- `enable()`, `disable()`, `toggleEnabled()`, `isEnabled()`
-- `drive()` / `drive(speed)`
+`Motor` is a `commands2.Subsystem` wrapper around `phoenix6.hardware.TalonFX` with:
+- enable/disable state control
+- bounded target movement (`goto`) in non-free mode
+- open-loop speed control (`drive`) in free mode
+- auto-updating default command (`update()` loop)
+- optional hold behavior and proportional correction (`pG`)
+
+Common methods:
+- `toggleEnabled()`, `isEnabled()`
 - `goto(target)`
+- `drive()` / `drive(speed)` (free mode only)
 - `setNeutralMode(neutralModeValue)`
-- `brakelessReset(duration) -> Command`
+- `brakelessReset(duration)`
+
+### `MotorGroup`
+
+`MotorGroup` applies one action across a list of `Motor` instances.
+
+Common methods:
+- `toggleEnabled()`, `isEnabled()`
+- `goto(target)`
+- `drive()` / `drive(speed)`
+- `setNeutralMode(neutralModeValue)`
+- `brakelessReset(duration)`
 - `getMotors()`
 
-### Example: group control
-```python
-from whattime_frc.MotorManagers import Motor, MotorGroup
-
-left = Motor(1, free=False, minValue=0, maxValue=1.0, pG=0.02)
-right = Motor(2, free=False, minValue=0, maxValue=1.0, pG=0.02, inverted=True)
-
-group = MotorGroup([left, right])
-group.enable()
-group.goto(0.75)
-```
-
-### Example: brakeless reset command
-```python
-# returns a commands2 Command: coast -> wait -> brake
-cmd = group.brakelessReset(0.75)
-cmd.schedule()
-```
-
-## DriverStation API
+## DriverStation
 
 Import:
 ```python
 from whattime_frc.DriverStation import AllianceManager
 ```
 
-### Methods
+Methods:
 - `AllianceManager.getCurrentAlliance() -> Alliance | None`
 - `AllianceManager.getOpposingAlliance() -> Alliance | None`
 - `AllianceManager.toggleAlliance(alliance) -> Alliance | None`
 
-### Example
-```python
-from whattime_frc.DriverStation import AllianceManager
+## YearlyMethods (Rebuilt)
 
-current = AllianceManager.getCurrentAlliance()
-opposing = AllianceManager.getOpposingAlliance()
+Import:
+```python
+from whattime_frc.YearlyMethods import RebuiltHubManager
 ```
 
-## Error Handling and Validation
+`RebuiltHubManager` manages inactive/active hub state by match phase using command scheduling.
 
-The motor classes perform strict runtime validation and will raise:
-- `TypeError` for invalid argument types
-- `ValueError` for invalid numeric ranges/values
-- `RuntimeError` for invalid mode usage (for example, calling `drive()` when `free=False`)
+Primary methods:
+- `updateInitialInactiveAlliance()`
+- `scheduleAllInactiveHubChanges()`
+- `startInactiveManager() -> Command`
+- `toggleAllianceCommand() -> Command`
+- `enableAllianceCommand() -> Command`
+- `disableAllianceCommand() -> Command`
+- `hubIsActive() -> bool`
+- `getInactiveFirstAlliance() -> Alliance | None`
+
+Expected `matchTimeManager` interface used by `RebuiltHubManager`:
+- `scheduleEventAtTime(time_seconds, command, description)`
+
+Example:
+```python
+from whattime_frc.YearlyMethods import RebuiltHubManager
+
+hub = RebuiltHubManager(matchTimeManager)
+hub.updateInitialInactiveAlliance()
+hub.scheduleAllInactiveHubChanges()
+```
 
 ## Notes
 
-- `Motor` depends on `phoenix6` and RobotPy `commands2`.
-- `DriverStation.getAlliance()` may return `None` before field data is available.
+- This package depends on RobotPy (`commands2`, `wpilib`) and CTRE Phoenix 6 (`phoenix6`).
+- Driver Station data (alliance/game-specific message) may be unavailable early in startup and can return `None`/empty data.
