@@ -7,14 +7,14 @@ class Motor:
         self.inverted = inverted
 
     def set(self, speed: float) -> None:
-        actual_speed = -speed if self.inverted else speed
-        self._motor.set(actual_speed)
+        actualSpeed = -speed if self.inverted else speed
+        self._motor.set(actualSpeed)
 
-    def get_motor(self) -> TalonFX:
+    def getMotor(self) -> TalonFX:
         return self._motor
 
-    def is_inverted(self) -> bool:
+    def isInverted(self) -> bool:
         return self.inverted
 
-    def get_position(self) -> float:
+    def getPosition(self) -> float:
         return self._motor.get_position().value
