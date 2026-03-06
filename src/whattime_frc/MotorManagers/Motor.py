@@ -23,7 +23,6 @@ class Motor(Subsystem):
         minSpeed: float = 0.0,
         motorSpeed: float = 1.0,
         free: bool = False,
-        looping: bool = False,
         holdSpeed: float = 0.0,
         threshold: float = 0.025,
         pG: float = 1.0,
@@ -36,8 +35,6 @@ class Motor(Subsystem):
             raise TypeError("inverted must be a bool.")
         if not isinstance(free, bool):
             raise TypeError("free must be a bool.")
-        if not isinstance(looping, bool):
-            raise TypeError("looping must be a bool.")
 
         if not isinstance(minValue, Real) or isinstance(minValue, bool):
             raise TypeError("minValue must be a real number.")
@@ -86,7 +83,6 @@ class Motor(Subsystem):
         self._minSpeed = float(minSpeed)
         self._motorSpeed = float(motorSpeed)
         self._free = free
-        self._looping = looping
         self._holdSpeed = float(holdSpeed)
         self._threshold = float(threshold)
         self._pG = float(pG)
@@ -122,7 +118,7 @@ class Motor(Subsystem):
         if not self._free:
             raise RuntimeError(".drive() is disabled; use .goto() when not using free rotation.")
         if not self._isEnabled:
-            warnings.warn("Motor is disabled.", RuntimeError)
+            warnings.warn("Motor is disabled.", RuntimeWarning)
             return
 
         if speed is _UNSET:
@@ -143,22 +139,16 @@ class Motor(Subsystem):
         self._isHolding = False
 
     def goto(self, target: float) -> None:
-        if self._free:
-            raise RuntimeError(".goto() is disabled; use .drive() when using free rotation or enable looping.")
         if not self._isEnabled:
-            warnings.warn("Motor is disabled.", RuntimeError)
+            warnings.warn("Motor is disabled.", RuntimeWarning)
             return
         if not isinstance(target, (int, float)):
             raise TypeError("target must be an int or float.")
 
         target = float(target)
-        if not self._looping:
-            if target > self._maxValue:
-                raise ValueError(f"Target too large ({target} > {self._maxValue})")
-            if target < self._minValue:
-                raise ValueError(f"Target too small ({target} < {self._minValue})")
-
-        self._targetValue = self._wrapValue(target) if self._looping else max(self._minValue, min(self._maxValue, target))
+        # In free mode, wrap the target so movement takes the fastest circular path.
+        # In bounded mode, clamp target within configured limits.
+        self._targetValue = self._wrapValue(target) if self._free else max(self._minValue, min(self._maxValue, target))
         self._hasTarget = True
         self._isHolding = False
 
@@ -205,7 +195,7 @@ class Motor(Subsystem):
         else:
             speed = self._calculateSpeedWithAcceleration(currentValue)
 
-        if not self._looping:
+        if not self._free:
             if currentValue >= self._maxValue and speed > 0.0:
                 speed = 0.0
             if currentValue <= self._minValue and speed < 0.0:
@@ -229,7 +219,7 @@ class Motor(Subsystem):
         return speed
 
     def _positionError(self, currentValue: float, targetValue: float) -> float:
-        if not self._looping:
+        if not self._free:
             return targetValue - currentValue
 
         span = self._maxValue - self._minValue
