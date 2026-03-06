@@ -122,7 +122,8 @@ class Motor(Subsystem):
         if not self._free:
             raise RuntimeError(".drive() is disabled; use .goto() when not using free rotation.")
         if not self._isEnabled:
-            raise RuntimeError("Motor is disabled.")
+            warnings.warn("Motor is disabled.", RuntimeError)
+            return
 
         if speed is _UNSET:
             speed = self._motorSpeed
@@ -143,9 +144,10 @@ class Motor(Subsystem):
 
     def goto(self, target: float) -> None:
         if self._free:
-            raise RuntimeError(".goto() is disabled; use .drive() when using free rotation.")
+            raise RuntimeError(".goto() is disabled; use .drive() when using free rotation or enable looping.")
         if not self._isEnabled:
-            raise RuntimeError("Motor is disabled.")
+            warnings.warn("Motor is disabled.", RuntimeError)
+            return
         if not isinstance(target, (int, float)):
             raise TypeError("target must be an int or float.")
 
