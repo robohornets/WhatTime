@@ -10,7 +10,7 @@ import java.util.List;
  * values across multiple motors, such as calculating average positions for
  * synchronized motor groups.
  * 
- * @see Motor
+ * @see MotorWrapper
  */
 
 @Deprecated
@@ -29,9 +29,9 @@ public class MotorPositionHandler {
      * @param motors the list of motor wrappers to average positions from
      * @return the average position in rotations, or π if the list is empty
      */
-    public double averagePositions(List<Motor> motors) {
+    public double averagePositions(List<MotorWrapper> motors) {
         double addingValue = 0.0;
-        for (Motor motor : motors) {
+        for (MotorWrapper motor : motors) {
             addingValue += motor.getPosition();
         }
 

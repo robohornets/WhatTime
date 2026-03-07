@@ -24,7 +24,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  * <p>The manager uses a supplier pattern to obtain current position values,
  * allowing flexibility in how position is measured (encoders, sensors, etc.).
  * 
- * @see Motor
+ * @see MotorWrapper
  */
 
 @Deprecated
@@ -36,7 +36,7 @@ public class PositionManager extends SubsystemBase {
     private final double maxValue;
     
     /** The list of motors controlled by this manager. */
-    private final List<Motor> motors;
+    private final List<MotorWrapper> motors;
     
     /** The speed at which motors move toward target positions. */
     private final double motorSpeed;
@@ -79,7 +79,7 @@ public class PositionManager extends SubsystemBase {
     public PositionManager(
         double minValue,
         double maxValue,
-        List<Motor> motors,
+        List<MotorWrapper> motors,
         double motorSpeed,
         double holdSpeed,
         double threshold,
@@ -187,7 +187,7 @@ public class PositionManager extends SubsystemBase {
      */
     private void setAllMotors(double speed) {
         // Loops through all motors and sets the hold speed
-        for (Motor motor : motors) {
+        for (MotorWrapper motor : motors) {
             motor.set(speed);
         }
     }

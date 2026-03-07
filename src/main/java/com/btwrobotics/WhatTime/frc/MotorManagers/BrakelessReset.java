@@ -19,7 +19,7 @@ import edu.wpi.first.wpilibj2.command.Command;
  * <p>The command finishes automatically after the specified duration elapses.
  * 
  * @see MotorResetPair
- * @see Motor
+ * @see MotorWrapper
  */
 @Deprecated
 public class BrakelessReset extends Command {

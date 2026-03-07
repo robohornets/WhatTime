@@ -1,5 +1,6 @@
 package com.btwrobotics.WhatTime.frc.MotorManagers;
 
+import java.sql.Wrapper;
 import java.util.List;
 
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -10,10 +11,10 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
  * Utility class for performing bulk operations on multiple motors.
  * 
  * <p>This class provides methods to apply configuration changes to multiple
- * {@link Motor} instances simultaneously, reducing code duplication
+ * {@link MotorWrapper} instances simultaneously, reducing code duplication
  * and improving maintainability when working with groups of motors.
  * 
- * @see Motor
+ * @see Wrapper
  * @see com.ctre.phoenix6.signals.NeutralModeValue
  */
 @Deprecated
@@ -31,8 +32,8 @@ public class MotorBulkActions {
      * @see NeutralModeValue#Brake
      * @see NeutralModeValue#Coast
      */
-    public void setNeutralModeBulk(List<Motor> motors, NeutralModeValue neutralModeValue) {
-        for (Motor motor : motors) {
+    public void setNeutralModeBulk(List<MotorWrapper> motors, NeutralModeValue neutralModeValue) {
+        for (MotorWrapper motor : motors) {
             motor.getMotor().setNeutralMode(neutralModeValue);
         }
     }
