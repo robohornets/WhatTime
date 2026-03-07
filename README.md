@@ -17,6 +17,6 @@ It currently includes the following:
 
 ## Maintainers
 
-*   **Tullysaurus** ([@Tullysaurus](https://github.com))
-*   **CaedmonMyers** ([@CaedmonMyers](https://github.com))
+*   **Tullysaurus** (Python maintainer)
+*   **CaedmonMyers** (Java maintainer)
 
