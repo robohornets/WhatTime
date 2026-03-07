@@ -8,6 +8,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
+ * Deprecated: Use Motor class instead
+ * 
  * Manager for controlling motor-driven mechanisms to specific positions with limits.
  * 
  * <p>This class manages position-based control of motor groups, ensuring they stay
@@ -22,8 +24,10 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  * <p>The manager uses a supplier pattern to obtain current position values,
  * allowing flexibility in how position is measured (encoders, sensors, etc.).
  * 
- * @see MotorWrapper
+ * @see Motor
  */
+
+@Deprecated
 public class PositionManager extends SubsystemBase {
     /** The minimum allowed position value (lower limit). */
     private final double minValue;
@@ -32,7 +36,7 @@ public class PositionManager extends SubsystemBase {
     private final double maxValue;
     
     /** The list of motors controlled by this manager. */
-    private final List<MotorWrapper> motors;
+    private final List<Motor> motors;
     
     /** The speed at which motors move toward target positions. */
     private final double motorSpeed;
@@ -75,7 +79,7 @@ public class PositionManager extends SubsystemBase {
     public PositionManager(
         double minValue,
         double maxValue,
-        List<MotorWrapper> motors,
+        List<Motor> motors,
         double motorSpeed,
         double holdSpeed,
         double threshold,
@@ -183,7 +187,7 @@ public class PositionManager extends SubsystemBase {
      */
     private void setAllMotors(double speed) {
         // Loops through all motors and sets the hold speed
-        for (MotorWrapper motor : motors) {
+        for (Motor motor : motors) {
             motor.set(speed);
         }
     }

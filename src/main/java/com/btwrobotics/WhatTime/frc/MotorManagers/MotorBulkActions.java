@@ -5,15 +5,18 @@ import java.util.List;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 /**
+ * Deprecated: Use Motor class instead
+ * 
  * Utility class for performing bulk operations on multiple motors.
  * 
  * <p>This class provides methods to apply configuration changes to multiple
- * {@link MotorWrapper} instances simultaneously, reducing code duplication
+ * {@link Motor} instances simultaneously, reducing code duplication
  * and improving maintainability when working with groups of motors.
  * 
- * @see MotorWrapper
+ * @see Motor
  * @see com.ctre.phoenix6.signals.NeutralModeValue
  */
+@Deprecated
 public class MotorBulkActions {
     /**
      * Sets the neutral mode for multiple motors.
@@ -28,8 +31,8 @@ public class MotorBulkActions {
      * @see NeutralModeValue#Brake
      * @see NeutralModeValue#Coast
      */
-    public void setNeutralModeBulk(List<MotorWrapper> motors, NeutralModeValue neutralModeValue) {
-        for (MotorWrapper motor : motors) {
+    public void setNeutralModeBulk(List<Motor> motors, NeutralModeValue neutralModeValue) {
+        for (Motor motor : motors) {
             motor.getMotor().setNeutralMode(neutralModeValue);
         }
     }

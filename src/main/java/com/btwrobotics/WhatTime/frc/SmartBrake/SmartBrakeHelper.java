@@ -3,7 +3,7 @@ package com.btwrobotics.WhatTime.frc.SmartBrake;
 import java.util.List;
 
 import com.btwrobotics.WhatTime.frc.MotorManagers.MotorPositionHandler;
-import com.btwrobotics.WhatTime.frc.MotorManagers.MotorWrapper;
+import com.btwrobotics.WhatTime.frc.MotorManagers.Motor;
 
 import edu.wpi.first.wpilibj2.command.Command;
 
@@ -28,7 +28,7 @@ import edu.wpi.first.wpilibj2.command.Command;
  */
 public class SmartBrakeHelper extends Command {
     /** The list of motors to control for position holding. */
-    private final List<MotorWrapper> motors;
+    private final List<Motor> motors;
     
     /** The maximum speed allowed for corrective movements. */
     private final double maxSpeed;
@@ -55,7 +55,7 @@ public class SmartBrakeHelper extends Command {
      * @param maxValue the maximum allowed position (upper limit)
      * @param minValue the minimum allowed position (lower limit)
      */
-    public SmartBrakeHelper(List<MotorWrapper> motors, double maxSpeed, double targetPosition, double threshold, double maxValue, double minValue) {
+    public SmartBrakeHelper(List<Motor> motors, double maxSpeed, double targetPosition, double threshold, double maxValue, double minValue) {
         this.motors = motors;
         this.maxSpeed = maxSpeed;
         this.targetPosition = targetPosition;
@@ -138,7 +138,7 @@ public class SmartBrakeHelper extends Command {
      */
     private void setAllMotors(double speed) {
         // Loops through all motors and sets the hold speed
-        for (MotorWrapper motor : motors) {
+        for (Motor motor : motors) {
             motor.set(speed);
         }
     }

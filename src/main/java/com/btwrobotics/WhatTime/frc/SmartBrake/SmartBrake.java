@@ -3,7 +3,7 @@ package com.btwrobotics.WhatTime.frc.SmartBrake;
 import java.util.List;
 import java.util.OptionalDouble;
 
-import com.btwrobotics.WhatTime.frc.MotorManagers.MotorWrapper;
+import com.btwrobotics.WhatTime.frc.MotorManagers.Motor;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -29,11 +29,11 @@ import edu.wpi.first.wpilibj2.command.Command;
  * the motor controllers.
  * 
  * @see SmartBrakeHelper
- * @see MotorWrapper
+ * @see Motor
  */
 public class SmartBrake {
     /** The list of motors controlled by this SmartBrake instance. */
-    private final List<MotorWrapper> motors;
+    private final List<Motor> motors;
     
     /** The target position to maintain when SmartBrake is active. */
     private double targetPosition;
@@ -61,7 +61,7 @@ public class SmartBrake {
      * @param maxValue the maximum allowed position (upper limit)
      * @param minValue the minimum allowed position (lower limit)
      */
-    public SmartBrake(List<MotorWrapper> motors, OptionalDouble maxSpeed, double targetPosition, double threshold, double maxValue, double minValue) {
+    public SmartBrake(List<Motor> motors, OptionalDouble maxSpeed, double targetPosition, double threshold, double maxValue, double minValue) {
         this.motors = motors;
 
         // Sets the custom max speed with a fallback of 0.3.
@@ -117,7 +117,7 @@ public class SmartBrake {
      * by the motor controller hardware.
      */
     public void enableBrakes() {
-        for (MotorWrapper motor : motors) {
+        for (Motor motor : motors) {
             motor.getMotor().setNeutralMode(NeutralModeValue.Brake);
         }
     }
@@ -130,7 +130,7 @@ public class SmartBrake {
      * mechanisms to settle naturally.
      */
     public void disableBrakes() {
-        for (MotorWrapper motor : motors) {
+        for (Motor motor : motors) {
             motor.getMotor().setNeutralMode(NeutralModeValue.Coast);
         }
     }

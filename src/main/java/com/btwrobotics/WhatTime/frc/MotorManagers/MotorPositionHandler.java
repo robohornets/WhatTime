@@ -3,14 +3,17 @@ package com.btwrobotics.WhatTime.frc.MotorManagers;
 import java.util.List;
 
 /**
+ * Deprecated: Use Motor class instead
  * Utility class for handling motor position calculations.
  * 
  * <p>This class provides methods for analyzing and computing position-related
  * values across multiple motors, such as calculating average positions for
  * synchronized motor groups.
  * 
- * @see MotorWrapper
+ * @see Motor
  */
+
+@Deprecated
 public class MotorPositionHandler {
     /**
      * Calculates the average position across multiple motors.
@@ -26,9 +29,9 @@ public class MotorPositionHandler {
      * @param motors the list of motor wrappers to average positions from
      * @return the average position in rotations, or π if the list is empty
      */
-    public double averagePositions(List<MotorWrapper> motors) {
+    public double averagePositions(List<Motor> motors) {
         double addingValue = 0.0;
-        for (MotorWrapper motor : motors) {
+        for (Motor motor : motors) {
             addingValue += motor.getPosition();
         }
 
