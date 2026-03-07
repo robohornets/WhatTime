@@ -24,7 +24,7 @@ public class Motor extends SubsystemBase {
     private static final double DEFAULT_HOLD_SPEED = 0.0;
     private static final double DEFAULT_THRESHOLD = 0.025;
     private static final double DEFAULT_PG = 1.0;
-    private static final DoubleSupplier DEFAULT_CURRENT_VALUE_SUPPLIER = null;
+    private static final DoubleSupplier DEFAULT_POSITION_DOUBLE_SUPPLIER = null;
 
     private final TalonFX motor;
 
@@ -37,7 +37,7 @@ public class Motor extends SubsystemBase {
     private double holdSpeed;
     private double threshold;
     private double pG;
-    private DoubleSupplier currentValueSupplier;
+    private DoubleSupplier positionSupplier;
 
     private double targetValue;
     private boolean hasTarget;
@@ -47,308 +47,35 @@ public class Motor extends SubsystemBase {
     @SuppressWarnings("unused")
     private int deccelerateSteps;
 
-    public Motor(TalonFX motor) {
-        this(motor, DEFAULT_INVERTED);
-    }
-
-    public Motor(TalonFX motor, boolean inverted) {
-        this(motor, inverted, DEFAULT_MIN_VALUE);
-    }
-
-    public Motor(TalonFX motor, boolean inverted, double minValue) {
-        this(motor, inverted, minValue, DEFAULT_MAX_VALUE);
-    }
-
-    public Motor(TalonFX motor, boolean inverted, double minValue, double maxValue) {
-        this(motor, inverted, minValue, maxValue, DEFAULT_MIN_SPEED);
-    }
-
-    public Motor(TalonFX motor, boolean inverted, double minValue, double maxValue, double minSpeed) {
-        this(motor, inverted, minValue, maxValue, minSpeed, DEFAULT_MOTOR_SPEED);
-    }
-
-    public Motor(TalonFX motor, boolean inverted, double minValue, double maxValue, double minSpeed, double motorSpeed) {
-        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, DEFAULT_FREE);
-    }
-
-    public Motor(
-        TalonFX motor,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free
-    ) {
-        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, DEFAULT_HOLD_SPEED);
-    }
-
-    public Motor(
-        TalonFX motor,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed
-    ) {
-        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, DEFAULT_THRESHOLD);
-    }
-
-    public Motor(
-        TalonFX motor,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold
-    ) {
-        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, DEFAULT_PG);
-    }
-
-    public Motor(
-        TalonFX motor,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold,
-        double pG
-    ) {
-        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG, DEFAULT_CURRENT_VALUE_SUPPLIER);
-    }
-
     public Motor(int deviceId) {
-        this(new TalonFX(deviceId), DEFAULT_INVERTED);
+        this(deviceId, DEFAULT_INVERTED);
     }
 
     public Motor(int deviceId, boolean inverted) {
         this(new TalonFX(deviceId), inverted);
     }
 
-    public Motor(int deviceId, boolean inverted, double minValue) {
-        this(new TalonFX(deviceId), inverted, minValue);
-    }
-
-    public Motor(int deviceId, boolean inverted, double minValue, double maxValue) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue);
-    }
-
-    public Motor(int deviceId, boolean inverted, double minValue, double maxValue, double minSpeed) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed);
-    }
-
-    public Motor(int deviceId, boolean inverted, double minValue, double maxValue, double minSpeed, double motorSpeed) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed);
-    }
-
-    public Motor(
-        int deviceId,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free
-    ) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free);
-    }
-
-    public Motor(
-        int deviceId,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed
-    ) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed);
-    }
-
-    public Motor(
-        int deviceId,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold
-    ) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold);
-    }
-
-    public Motor(
-        int deviceId,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold,
-        double pG
-    ) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG);
-    }
-
-    public Motor(
-        int deviceId,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold,
-        double pG,
-        DoubleSupplier currentValueSupplier
-    ) {
-        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG, currentValueSupplier);
-    }
-
     public Motor(int deviceId, String canbus) {
-        this(new TalonFX(deviceId, canbus), DEFAULT_INVERTED);
+        this(deviceId, canbus, DEFAULT_INVERTED);
     }
 
     public Motor(int deviceId, String canbus, boolean inverted) {
         this(new TalonFX(deviceId, canbus), inverted);
     }
 
-    public Motor(int deviceId, String canbus, boolean inverted, double minValue) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue);
-    }
-
-    public Motor(int deviceId, String canbus, boolean inverted, double minValue, double maxValue) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue);
-    }
-
-    public Motor(int deviceId, String canbus, boolean inverted, double minValue, double maxValue, double minSpeed) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed);
-    }
-
-    public Motor(int deviceId, String canbus, boolean inverted, double minValue, double maxValue, double minSpeed, double motorSpeed) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed);
-    }
-
-    public Motor(
-        int deviceId,
-        String canbus,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free
-    ) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free);
-    }
-
-    public Motor(
-        int deviceId,
-        String canbus,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed
-    ) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed);
-    }
-
-    public Motor(
-        int deviceId,
-        String canbus,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold
-    ) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold);
-    }
-
-    public Motor(
-        int deviceId,
-        String canbus,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold,
-        double pG
-    ) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG);
-    }
-
-    public Motor(
-        int deviceId,
-        String canbus,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold,
-        double pG,
-        DoubleSupplier currentValueSupplier
-    ) {
-        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG, currentValueSupplier);
-    }
-
-    public Motor(
-        TalonFX motor,
-        boolean inverted,
-        double minValue,
-        double maxValue,
-        double minSpeed,
-        double motorSpeed,
-        boolean free,
-        double holdSpeed,
-        double threshold,
-        double pG,
-        DoubleSupplier currentValueSupplier
-    ) {
-        validateRange(minValue, maxValue);
-        validateSpeeds(motorSpeed, minSpeed, holdSpeed);
-        validateFinite(threshold, "threshold");
-        validateNonNegative(threshold, "threshold");
-        validateFinite(pG, "pG");
-
+    private Motor(TalonFX motor, boolean inverted) {
         this.motor = motor;
         this.inverted = inverted;
 
-        this.minValue = minValue;
-        this.maxValue = maxValue;
-        this.minSpeed = minSpeed;
-        this.motorSpeed = motorSpeed;
-        this.free = free;
-        this.holdSpeed = holdSpeed;
-        this.threshold = threshold;
-        this.pG = pG;
-        this.currentValueSupplier = currentValueSupplier;
+        this.minValue = DEFAULT_MIN_VALUE;
+        this.maxValue = DEFAULT_MAX_VALUE;
+        this.minSpeed = DEFAULT_MIN_SPEED;
+        this.motorSpeed = DEFAULT_MOTOR_SPEED;
+        this.free = DEFAULT_FREE;
+        this.holdSpeed = DEFAULT_HOLD_SPEED;
+        this.threshold = DEFAULT_THRESHOLD;
+        this.pG = DEFAULT_PG;
+        this.positionSupplier = DEFAULT_POSITION_DOUBLE_SUPPLIER;
 
         this.targetValue = 0.0;
         this.hasTarget = false;
@@ -362,6 +89,79 @@ public class Motor extends SubsystemBase {
 
     public static Motor of(TalonFX motor, boolean inverted) {
         return new Motor(motor, inverted);
+    }
+
+    public Motor setInverted(boolean inverted) {
+        this.inverted = inverted;
+        return this;
+    }
+
+    public Motor setMinValue(double minValue) {
+        validateRange(minValue, this.maxValue);
+        this.minValue = minValue;
+        return this;
+    }
+
+    public Motor setMaxValue(double maxValue) {
+        validateRange(this.minValue, maxValue);
+        this.maxValue = maxValue;
+        return this;
+    }
+
+    public Motor setRange(double minValue, double maxValue) {
+        validateRange(minValue, maxValue);
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+        return this;
+    }
+
+    public Motor setMinSpeed(double minSpeed) {
+        validateFinite(minSpeed, "minSpeed");
+        validateNonNegative(minSpeed, "minSpeed");
+        if (minSpeed > this.motorSpeed) {
+            throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
+        }
+        this.minSpeed = minSpeed;
+        return this;
+    }
+
+    public Motor setMotorSpeed(double motorSpeed) {
+        validateFinite(motorSpeed, "motorSpeed");
+        validateNonNegative(motorSpeed, "motorSpeed");
+        if (this.minSpeed > motorSpeed) {
+            throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
+        }
+        this.motorSpeed = motorSpeed;
+        return this;
+    }
+
+    public Motor setFree(boolean free) {
+        this.free = free;
+        return this;
+    }
+
+    public Motor setHoldSpeed(double holdSpeed) {
+        validateFinite(holdSpeed, "holdSpeed");
+        this.holdSpeed = holdSpeed;
+        return this;
+    }
+
+    public Motor setThreshold(double threshold) {
+        validateFinite(threshold, "threshold");
+        validateNonNegative(threshold, "threshold");
+        this.threshold = threshold;
+        return this;
+    }
+
+    public Motor setPG(double pG) {
+        validateFinite(pG, "pG");
+        this.pG = pG;
+        return this;
+    }
+
+    public Motor setPositionSupplier(DoubleSupplier positionSupplier) {
+        this.positionSupplier = positionSupplier;
+        return this;
     }
 
     public boolean toggleEnabled() {
@@ -380,119 +180,6 @@ public class Motor extends SubsystemBase {
 
     public boolean isEnabled() {
         return isEnabled;
-    }
-
-    public void config(Map<String, ?> config) {
-        for (Map.Entry<String, ?> entry : config.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-
-            switch (key) {
-                case "inverted":
-                    if (value instanceof Boolean boolValue) {
-                        inverted = boolValue;
-                    } else {
-                        warn("Invalid type for 'inverted', expected boolean.");
-                    }
-                    break;
-                case "minValue":
-                    if (value instanceof Number number) {
-                        double next = number.doubleValue();
-                        validateRange(next, maxValue);
-                        minValue = next;
-                    } else {
-                        warn("Invalid type for 'minValue', expected number.");
-                    }
-                    break;
-                case "maxValue":
-                    if (value instanceof Number number) {
-                        double next = number.doubleValue();
-                        validateRange(minValue, next);
-                        maxValue = next;
-                    } else {
-                        warn("Invalid type for 'maxValue', expected number.");
-                    }
-                    break;
-                case "minSpeed":
-                    if (value instanceof Number number) {
-                        double next = number.doubleValue();
-                        validateFinite(next, "minSpeed");
-                        validateNonNegative(next, "minSpeed");
-                        if (next > motorSpeed) {
-                            throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
-                        }
-                        minSpeed = next;
-                    } else {
-                        warn("Invalid type for 'minSpeed', expected number.");
-                    }
-                    break;
-                case "motorSpeed":
-                    if (value instanceof Number number) {
-                        double next = number.doubleValue();
-                        validateFinite(next, "motorSpeed");
-                        validateNonNegative(next, "motorSpeed");
-                        if (minSpeed > next) {
-                            throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
-                        }
-                        motorSpeed = next;
-                    } else {
-                        warn("Invalid type for 'motorSpeed', expected number.");
-                    }
-                    break;
-                case "free":
-                    if (value instanceof Boolean boolValue) {
-                        free = boolValue;
-                    } else {
-                        warn("Invalid type for 'free', expected boolean.");
-                    }
-                    break;
-                case "holdSpeed":
-                    if (value instanceof Number number) {
-                        double next = number.doubleValue();
-                        validateFinite(next, "holdSpeed");
-                        holdSpeed = next;
-                    } else {
-                        warn("Invalid type for 'holdSpeed', expected number.");
-                    }
-                    break;
-                case "threshold":
-                    if (value instanceof Number number) {
-                        double next = number.doubleValue();
-                        validateFinite(next, "threshold");
-                        validateNonNegative(next, "threshold");
-                        threshold = next;
-                    } else {
-                        warn("Invalid type for 'threshold', expected number.");
-                    }
-                    break;
-                case "pG":
-                    if (value instanceof Number number) {
-                        double next = number.doubleValue();
-                        validateFinite(next, "pG");
-                        pG = next;
-                    } else {
-                        warn("Invalid type for 'pG', expected number.");
-                    }
-                    break;
-                case "currentValueSupplier":
-                    if (value == null || value instanceof DoubleSupplier supplier) {
-                        currentValueSupplier = (DoubleSupplier) value;
-                    } else {
-                        warn("Invalid type for 'currentValueSupplier', expected DoubleSupplier.");
-                    }
-                    break;
-                case "deccelerateSteps":
-                    if (value instanceof Number number) {
-                        deccelerateSteps = number.intValue();
-                    } else {
-                        warn("Invalid type for 'deccelerateSteps', expected number.");
-                    }
-                    break;
-                default:
-                    warn("Motor has no property '" + key + "', skipping");
-                    break;
-            }
-        }
     }
 
     public void drive() {
@@ -629,8 +316,8 @@ public class Motor extends SubsystemBase {
     }
 
     public double getCurrentValue() {
-        if (currentValueSupplier != null) {
-            return currentValueSupplier.getAsDouble();
+        if (positionSupplier != null) {
+            return positionSupplier.getAsDouble();
         }
         return getPosition();
     }
@@ -656,17 +343,6 @@ public class Motor extends SubsystemBase {
         validateFinite(maxValue, "maxValue");
         if (maxValue <= minValue) {
             throw new IllegalArgumentException("maxValue must be greater than minValue.");
-        }
-    }
-
-    private static void validateSpeeds(double motorSpeed, double minSpeed, double holdSpeed) {
-        validateFinite(motorSpeed, "motorSpeed");
-        validateFinite(minSpeed, "minSpeed");
-        validateFinite(holdSpeed, "holdSpeed");
-        validateNonNegative(motorSpeed, "motorSpeed");
-        validateNonNegative(minSpeed, "minSpeed");
-        if (minSpeed > motorSpeed) {
-            throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
         }
     }
 
