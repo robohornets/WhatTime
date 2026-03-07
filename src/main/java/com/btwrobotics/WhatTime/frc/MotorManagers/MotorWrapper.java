@@ -3,6 +3,8 @@ package com.btwrobotics.WhatTime.frc.MotorManagers;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 /**
+ * Deprecated: Use Motor class instead
+ * 
  * Wrapper class for TalonFX motor controllers with inversion support.
  * 
  * <p>This class provides a simplified interface for controlling TalonFX motors
@@ -14,8 +16,10 @@ import com.ctre.phoenix6.hardware.TalonFX;
  * some motors may be mounted in opposite directions but should respond to
  * commands uniformly.
  * 
+ * @see Motor
  * @see com.ctre.phoenix6.hardware.TalonFX
  */
+@Deprecated
 public class MotorWrapper {
     /** The underlying TalonFX motor controller. */
     private final TalonFX motor;

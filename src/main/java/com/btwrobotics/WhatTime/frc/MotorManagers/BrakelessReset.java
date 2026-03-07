@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 
 /**
+ * Deprecated: Use Motor class instead 
  * Command that temporarily disables brake mode on motors to allow natural settling.
  * 
  * <p>This command sets motors to coast mode for a specified duration, allowing them
@@ -20,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.Command;
  * @see MotorResetPair
  * @see MotorWrapper
  */
+@Deprecated
 public class BrakelessReset extends Command {
     /** The duration in seconds to keep motors in coast mode. */
     private final double duration;
@@ -33,13 +35,13 @@ public class BrakelessReset extends Command {
     /**
      * Pairs a motor with its reset action to be executed after coasting.
      * 
-     * <p>This class bundles a {@link MotorWrapper} with a {@link Runnable} that
+     * <p>This class bundles a {@link Motor} with a {@link Runnable} that
      * will be executed when the brakeless reset completes. The reset action
      * typically involves resetting the motor's encoder to a known position.
      */
     public static class MotorResetPair {
         /** The motor to be set to coast mode. */
-        public final MotorWrapper motor;
+        public final Motor motor;
         
         /** The action to execute after the coast period ends. */
         public final Runnable resetAction;
@@ -50,7 +52,7 @@ public class BrakelessReset extends Command {
          * @param motor the motor wrapper to control
          * @param resetAction the action to run after coasting completes
          */
-        public MotorResetPair(MotorWrapper motor, Runnable resetAction) {
+        public MotorResetPair(Motor motor, Runnable resetAction) {
             this.motor = motor;
             this.resetAction = resetAction;
         }

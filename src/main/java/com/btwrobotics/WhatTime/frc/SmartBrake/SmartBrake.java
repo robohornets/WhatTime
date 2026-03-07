@@ -3,6 +3,7 @@ package com.btwrobotics.WhatTime.frc.SmartBrake;
 import java.util.List;
 import java.util.OptionalDouble;
 
+import com.btwrobotics.WhatTime.frc.MotorManagers.Motor;
 import com.btwrobotics.WhatTime.frc.MotorManagers.MotorWrapper;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 

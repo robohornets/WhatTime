@@ -8,6 +8,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
+ * Deprecated: Use Motor class instead
+ * 
  * Manager for controlling motor-driven mechanisms to specific positions with limits.
  * 
  * <p>This class manages position-based control of motor groups, ensuring they stay
@@ -24,6 +26,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  * 
  * @see MotorWrapper
  */
+
+@Deprecated
 public class PositionManager extends SubsystemBase {
     /** The minimum allowed position value (lower limit). */
     private final double minValue;

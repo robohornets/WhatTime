@@ -3,6 +3,7 @@ package com.btwrobotics.WhatTime.frc.MotorManagers;
 import java.util.List;
 
 /**
+ * Deprecated: Use Motor class instead
  * Utility class for handling motor position calculations.
  * 
  * <p>This class provides methods for analyzing and computing position-related
@@ -11,6 +12,8 @@ import java.util.List;
  * 
  * @see MotorWrapper
  */
+
+@Deprecated
 public class MotorPositionHandler {
     /**
      * Calculates the average position across multiple motors.
