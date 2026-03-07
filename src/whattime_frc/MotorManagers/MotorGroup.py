@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import overload
+from typing import Callable, overload
 from numbers import Real
 
 from commands2 import Command, Subsystem
@@ -22,11 +22,71 @@ class MotorGroup(Subsystem):
         self._motors = motors
 
     def toggleEnabled(self, enabled: bool | None = None) -> bool:
-        states = [motor.toggleEnabled(enabled) for motor in self._motors]
-        return all(states)
-    
+        allEnabled = True
+        for motor in self._motors:
+            allEnabled = allEnabled and motor.toggleEnabled(enabled)
+        return allEnabled
+
     def isEnabled(self) -> bool:
-        return all(motor.isEnabled() for motor in self._motors)
+        for motor in self._motors:
+            if not motor.isEnabled():
+                return False
+        return True
+
+    def setInverted(self, inverted: bool) -> MotorGroup:
+        for motor in self._motors:
+            motor.setInverted(inverted)
+        return self
+
+    def setMinValue(self, minValue: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setMinValue(minValue)
+        return self
+
+    def setMaxValue(self, maxValue: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setMaxValue(maxValue)
+        return self
+
+    def setRange(self, minValue: float, maxValue: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setRange(minValue, maxValue)
+        return self
+
+    def setMinSpeed(self, minSpeed: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setMinSpeed(minSpeed)
+        return self
+
+    def setMotorSpeed(self, motorSpeed: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setMotorSpeed(motorSpeed)
+        return self
+
+    def setFree(self, free: bool) -> MotorGroup:
+        for motor in self._motors:
+            motor.setFree(free)
+        return self
+
+    def setHoldSpeed(self, holdSpeed: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setHoldSpeed(holdSpeed)
+        return self
+
+    def setThreshold(self, threshold: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setThreshold(threshold)
+        return self
+
+    def setPG(self, pG: float) -> MotorGroup:
+        for motor in self._motors:
+            motor.setPG(pG)
+        return self
+
+    def setPositionSupplier(self, positionSupplier: Callable[[], float] | None) -> MotorGroup:
+        for motor in self._motors:
+            motor.setPositionSupplier(positionSupplier)
+        return self
 
     @overload
     def drive(self) -> None: ...
@@ -47,16 +107,21 @@ class MotorGroup(Subsystem):
         for motor in self._motors:
             motor.drive(scalar_speed)
 
-    def goto(self, target: int | float) -> None:
+    def goTo(self, target: int | float) -> None:
         if not isinstance(target, Real):
             raise TypeError("target must be an int or float.")
 
         scalar_target = float(target)
         for motor in self._motors:
-            motor.goto(scalar_target)
+            motor.goTo(scalar_target)
+
+    def setTarget(self, target: int | float) -> None:
+        self.goTo(target)
+
+    def goto(self, target: int | float) -> None:
+        self.goTo(target)
 
     def setNeutralMode(self, neutralModeValue: NeutralModeValue) -> None:
-
         for motor in self._motors:
             motor.setNeutralMode(neutralModeValue)
 
@@ -79,5 +144,6 @@ class MotorGroup(Subsystem):
                 self,
             ),
         )
-    def getMotors(self):
+
+    def getMotors(self) -> list[Motor]:
         return self._motors
