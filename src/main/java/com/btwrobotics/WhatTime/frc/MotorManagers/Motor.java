@@ -20,10 +20,10 @@ public class Motor extends SubsystemBase {
     private static final double DEFAULT_MAX_VALUE = 1.0;
     private static final double DEFAULT_MIN_SPEED = 0.0;
     private static final double DEFAULT_MOTOR_SPEED = 1.0;
-    private static final boolean DEFAULT_FREE = false;
+    private static final boolean DEFAULT_FREE = true;
     private static final double DEFAULT_HOLD_SPEED = 0.0;
     private static final double DEFAULT_THRESHOLD = 0.025;
-    private static final double DEFAULT_PG = 1.0;
+    private static final double DEFAULT_PG = 0.1;
     private static final DoubleSupplier DEFAULT_POSITION_DOUBLE_SUPPLIER = null;
 
     private final TalonFX motor;
