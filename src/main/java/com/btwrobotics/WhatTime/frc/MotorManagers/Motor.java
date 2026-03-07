@@ -15,6 +15,17 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  * TalonFX wrapper with optional free-drive mode and position control.
  */
 public class Motor extends SubsystemBase {
+    private static final boolean DEFAULT_INVERTED = false;
+    private static final double DEFAULT_MIN_VALUE = -1.0;
+    private static final double DEFAULT_MAX_VALUE = 1.0;
+    private static final double DEFAULT_MIN_SPEED = 0.0;
+    private static final double DEFAULT_MOTOR_SPEED = 1.0;
+    private static final boolean DEFAULT_FREE = false;
+    private static final double DEFAULT_HOLD_SPEED = 0.0;
+    private static final double DEFAULT_THRESHOLD = 0.025;
+    private static final double DEFAULT_PG = 1.0;
+    private static final DoubleSupplier DEFAULT_CURRENT_VALUE_SUPPLIER = null;
+
     private final TalonFX motor;
 
     private boolean inverted;
@@ -36,16 +47,275 @@ public class Motor extends SubsystemBase {
     @SuppressWarnings("unused")
     private int deccelerateSteps;
 
+    public Motor(TalonFX motor) {
+        this(motor, DEFAULT_INVERTED);
+    }
+
     public Motor(TalonFX motor, boolean inverted) {
-        this(motor, inverted, -1.0, 1.0, 0.0, 1.0, false, 0.0, 0.025, 1.0, null);
+        this(motor, inverted, DEFAULT_MIN_VALUE);
+    }
+
+    public Motor(TalonFX motor, boolean inverted, double minValue) {
+        this(motor, inverted, minValue, DEFAULT_MAX_VALUE);
+    }
+
+    public Motor(TalonFX motor, boolean inverted, double minValue, double maxValue) {
+        this(motor, inverted, minValue, maxValue, DEFAULT_MIN_SPEED);
+    }
+
+    public Motor(TalonFX motor, boolean inverted, double minValue, double maxValue, double minSpeed) {
+        this(motor, inverted, minValue, maxValue, minSpeed, DEFAULT_MOTOR_SPEED);
+    }
+
+    public Motor(TalonFX motor, boolean inverted, double minValue, double maxValue, double minSpeed, double motorSpeed) {
+        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, DEFAULT_FREE);
+    }
+
+    public Motor(
+        TalonFX motor,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free
+    ) {
+        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, DEFAULT_HOLD_SPEED);
+    }
+
+    public Motor(
+        TalonFX motor,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed
+    ) {
+        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, DEFAULT_THRESHOLD);
+    }
+
+    public Motor(
+        TalonFX motor,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold
+    ) {
+        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, DEFAULT_PG);
+    }
+
+    public Motor(
+        TalonFX motor,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold,
+        double pG
+    ) {
+        this(motor, inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG, DEFAULT_CURRENT_VALUE_SUPPLIER);
+    }
+
+    public Motor(int deviceId) {
+        this(new TalonFX(deviceId), DEFAULT_INVERTED);
     }
 
     public Motor(int deviceId, boolean inverted) {
         this(new TalonFX(deviceId), inverted);
     }
 
+    public Motor(int deviceId, boolean inverted, double minValue) {
+        this(new TalonFX(deviceId), inverted, minValue);
+    }
+
+    public Motor(int deviceId, boolean inverted, double minValue, double maxValue) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue);
+    }
+
+    public Motor(int deviceId, boolean inverted, double minValue, double maxValue, double minSpeed) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed);
+    }
+
+    public Motor(int deviceId, boolean inverted, double minValue, double maxValue, double minSpeed, double motorSpeed) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed);
+    }
+
+    public Motor(
+        int deviceId,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free
+    ) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free);
+    }
+
+    public Motor(
+        int deviceId,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed
+    ) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed);
+    }
+
+    public Motor(
+        int deviceId,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold
+    ) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold);
+    }
+
+    public Motor(
+        int deviceId,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold,
+        double pG
+    ) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG);
+    }
+
+    public Motor(
+        int deviceId,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold,
+        double pG,
+        DoubleSupplier currentValueSupplier
+    ) {
+        this(new TalonFX(deviceId), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG, currentValueSupplier);
+    }
+
+    public Motor(int deviceId, String canbus) {
+        this(new TalonFX(deviceId, canbus), DEFAULT_INVERTED);
+    }
+
     public Motor(int deviceId, String canbus, boolean inverted) {
         this(new TalonFX(deviceId, canbus), inverted);
+    }
+
+    public Motor(int deviceId, String canbus, boolean inverted, double minValue) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue);
+    }
+
+    public Motor(int deviceId, String canbus, boolean inverted, double minValue, double maxValue) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue);
+    }
+
+    public Motor(int deviceId, String canbus, boolean inverted, double minValue, double maxValue, double minSpeed) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed);
+    }
+
+    public Motor(int deviceId, String canbus, boolean inverted, double minValue, double maxValue, double minSpeed, double motorSpeed) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed);
+    }
+
+    public Motor(
+        int deviceId,
+        String canbus,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free
+    ) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free);
+    }
+
+    public Motor(
+        int deviceId,
+        String canbus,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed
+    ) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed);
+    }
+
+    public Motor(
+        int deviceId,
+        String canbus,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold
+    ) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold);
+    }
+
+    public Motor(
+        int deviceId,
+        String canbus,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold,
+        double pG
+    ) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG);
+    }
+
+    public Motor(
+        int deviceId,
+        String canbus,
+        boolean inverted,
+        double minValue,
+        double maxValue,
+        double minSpeed,
+        double motorSpeed,
+        boolean free,
+        double holdSpeed,
+        double threshold,
+        double pG,
+        DoubleSupplier currentValueSupplier
+    ) {
+        this(new TalonFX(deviceId, canbus), inverted, minValue, maxValue, minSpeed, motorSpeed, free, holdSpeed, threshold, pG, currentValueSupplier);
     }
 
     public Motor(
