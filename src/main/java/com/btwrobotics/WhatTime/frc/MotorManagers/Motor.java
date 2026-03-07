@@ -43,6 +43,7 @@ public class Motor extends SubsystemBase {
     private boolean hasTarget;
     private boolean isHolding;
     private boolean isEnabled;
+    private boolean isGoTo;
 
     @SuppressWarnings("unused")
     private int deccelerateSteps;
@@ -81,6 +82,7 @@ public class Motor extends SubsystemBase {
         this.hasTarget = false;
         this.isHolding = false;
         this.isEnabled = false;
+        this.isGoTo = false;
 
         this.deccelerateSteps = 50;
 
@@ -202,6 +204,7 @@ public class Motor extends SubsystemBase {
         targetValue = speed;
         hasTarget = true;
         isHolding = false;
+        isGoTo = false;
     }
 
     public void goTo(double target) {
@@ -213,6 +216,7 @@ public class Motor extends SubsystemBase {
         targetValue = free ? wrapValue(target) : clamp(target, minValue, maxValue);
         hasTarget = true;
         isHolding = false;
+        isGoTo = true;
     }
 
     public void setTarget(double target) {
@@ -243,7 +247,7 @@ public class Motor extends SubsystemBase {
             return 0.0;
         }
 
-        if (free) {
+        if (free && !isGoTo) {
             speed = clamp(targetValue, -1.0, 1.0);
             set(speed);
             return speed;
@@ -264,12 +268,15 @@ public class Motor extends SubsystemBase {
             speed = calculateSpeedWithAcceleration(currentValue);
         }
 
-        if (currentValue >= maxValue && speed > 0.0) {
-            speed = 0.0;
+        if (!free) {
+            if (currentValue >= maxValue && speed > 0.0) {
+                speed = 0.0;
+            }
+            if (currentValue <= minValue && speed < 0.0) {
+                speed = 0.0;
+            }
         }
-        if (currentValue <= minValue && speed < 0.0) {
-            speed = 0.0;
-        }
+
 
         set(speed);
         return speed;
