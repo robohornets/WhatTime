@@ -48,18 +48,42 @@ public class Motor extends SubsystemBase {
     @SuppressWarnings("unused")
     private int deccelerateSteps;
 
+    /**
+     * Creates a Motor object wrapping a TalonFX motor.
+     * 
+     * @param deviceId the id assigned to the TalonFX motor
+     */
     public Motor(int deviceId) {
         this(deviceId, DEFAULT_INVERTED);
     }
 
+    /**
+     * Creates a Motor object wrapping a TalonFX motor.
+     * 
+     * @param deviceId the id assigned to the TalonFX motor
+     * @param inverted whether the motor should be inverted by default
+     */
     public Motor(int deviceId, boolean inverted) {
         this(new TalonFX(deviceId), inverted);
     }
 
+    /**
+     * Creates a Motor object wrapping a TalonFX motor.
+     * 
+     * @param deviceId the id assigned to the TalonFX motor
+     * @param canbus the name of the canbus the motor is on
+     */
     public Motor(int deviceId, String canbus) {
         this(deviceId, canbus, DEFAULT_INVERTED);
     }
 
+    /**
+     * Creates a Motor object wrapping a TalonFX motor.
+     * 
+     * @param deviceId the id assigned to the TalonFX motor
+     * @param canbus the name of the canbus the motor is on
+     * @param inverted whether the motor should be inverted by default
+     */
     public Motor(int deviceId, String canbus, boolean inverted) {
         this(new TalonFX(deviceId, canbus), inverted);
     }
@@ -89,6 +113,13 @@ public class Motor extends SubsystemBase {
         setDefaultCommand(Commands.run(this::defaultCommand, this));
     }
 
+    /**
+     * Creates a motor from an existing TalonFX object.
+     * 
+     * @param motor the TalonFX motor
+     * @param inverted whether the motor should be inverted by default
+     * @return A Motor object that wraps the input TalonFX object
+     */
     public static Motor of(TalonFX motor, boolean inverted) {
         return new Motor(motor, inverted);
     }
@@ -137,6 +168,11 @@ public class Motor extends SubsystemBase {
         return this;
     }
 
+    /**
+     * Sets the free behaviour of the motor.
+     * 
+     * @param free whether the motor should move freely
+     */
     public Motor setFree(boolean free) {
         this.free = free;
         return this;
@@ -184,10 +220,27 @@ public class Motor extends SubsystemBase {
         return isEnabled;
     }
 
+    /**
+     * Drive the motor with free rotation at the set motor speed.
+     */
     public void drive() {
         drive(motorSpeed);
     }
 
+    /**
+     * Drive the motor with free rotation at the set motor speed.
+     * 
+     * @param reverse whether the direction of the motor should be reversed
+     */
+    public void drive(boolean reverse) {
+        drive(reverse ? -motorSpeed: motorSpeed);
+    }
+
+    /**
+     * Runs the motor with free rotation at a set speed.
+     * 
+     * @param speed the speed to run the motor at as a double ranging from -1.0 to 1.0
+     */
     public void drive(double speed) {
         if (!free) {
             throw new IllegalStateException(".drive() is disabled; use .goTo() when not using free rotation.");
@@ -219,10 +272,23 @@ public class Motor extends SubsystemBase {
         isGoTo = true;
     }
 
+    /** 
+     * Sets the current target position.
+     * The motor will move to and hold within the threshold of this position.
+     * 
+     * @param target the target position for the motor as a double
+     */
     public void setTarget(double target) {
         goTo(target);
     }
 
+    /**
+     * Sets the neutral mode of the motor
+     * 
+    *  @param neutralModeValue the neutral mode to apply (BRAKE or COAST)
+     * @see NeutralModeValue#Brake
+     * @see NeutralModeValue#Coast
+     */
     public void setNeutralMode(NeutralModeValue neutralModeValue) {
         motor.setNeutralMode(neutralModeValue);
     }
@@ -317,6 +383,11 @@ public class Motor extends SubsystemBase {
         return shifted - span * Math.floor(shifted / span) + minValue;
     }
 
+    /**
+     * Sets the speed of the motor while respecting the motor's inverted setting.
+     * 
+     * @param speed the speed of the motor as a double from -1.0 to 1.0
+     */
     public void set(double speed) {
         double actualSpeed = inverted ? -speed : speed;
         motor.set(actualSpeed);
