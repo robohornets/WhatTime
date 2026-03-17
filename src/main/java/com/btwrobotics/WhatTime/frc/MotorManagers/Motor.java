@@ -3,6 +3,8 @@ package com.btwrobotics.WhatTime.frc.MotorManagers;
 import java.util.Map;
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
@@ -10,6 +12,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import static edu.wpi.first.units.Units.Amps;
 
 /**
  * TalonFX wrapper with optional free-drive mode and position control.
@@ -33,6 +36,8 @@ public class Motor extends SubsystemBase {
     private double maxValue;
     private double minSpeed;
     private double motorSpeed;
+    private Double motorUpSpeed;
+    private Double motorDownSpeed;
     private boolean free;
     private double holdSpeed;
     private double threshold;
@@ -96,6 +101,8 @@ public class Motor extends SubsystemBase {
         this.maxValue = DEFAULT_MAX_VALUE;
         this.minSpeed = DEFAULT_MIN_SPEED;
         this.motorSpeed = DEFAULT_MOTOR_SPEED;
+        this.motorUpSpeed = null;
+        this.motorDownSpeed = null;
         this.free = DEFAULT_FREE;
         this.holdSpeed = DEFAULT_HOLD_SPEED;
         this.threshold = DEFAULT_THRESHOLD;
@@ -165,6 +172,42 @@ public class Motor extends SubsystemBase {
             throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
         }
         this.motorSpeed = motorSpeed;
+        return this;
+    }
+
+    /**
+     * Sets the maximum speed used when moving toward a higher position target.
+     * Overrides {@code motorSpeed} for position management. Pass {@code null} to fall back to {@code motorSpeed}.
+     *
+     * @param motorUpSpeed the upward speed cap, or {@code null} to use motorSpeed
+     */
+    public Motor setMotorUpSpeed(Double motorUpSpeed) {
+        if (motorUpSpeed != null) {
+            validateFinite(motorUpSpeed, "motorUpSpeed");
+            validateNonNegative(motorUpSpeed, "motorUpSpeed");
+            if (this.minSpeed > motorUpSpeed) {
+                throw new IllegalArgumentException("minSpeed cannot exceed motorUpSpeed.");
+            }
+        }
+        this.motorUpSpeed = motorUpSpeed;
+        return this;
+    }
+
+    /**
+     * Sets the maximum speed used when moving toward a lower position target.
+     * Overrides {@code motorSpeed} for position management. Pass {@code null} to fall back to {@code motorSpeed}.
+     *
+     * @param motorDownSpeed the downward speed cap, or {@code null} to use motorSpeed
+     */
+    public Motor setMotorDownSpeed(Double motorDownSpeed) {
+        if (motorDownSpeed != null) {
+            validateFinite(motorDownSpeed, "motorDownSpeed");
+            validateNonNegative(motorDownSpeed, "motorDownSpeed");
+            if (this.minSpeed > motorDownSpeed) {
+                throw new IllegalArgumentException("minSpeed cannot exceed motorDownSpeed.");
+            }
+        }
+        this.motorDownSpeed = motorDownSpeed;
         return this;
     }
 
@@ -252,6 +295,7 @@ public class Motor extends SubsystemBase {
 
         if (speed != 0.0 && Math.abs(speed) < minSpeed) {
             warn("Speed too slow (" + Math.abs(speed) + " < " + minSpeed + "), running at minimum speed.");
+            speed = Math.copySign(minSpeed, speed);
         }
 
         targetValue = speed;
@@ -315,6 +359,9 @@ public class Motor extends SubsystemBase {
 
         if (free && !isGoTo) {
             speed = clamp(targetValue, -1.0, 1.0);
+            if (speed != 0.0 && Math.abs(speed) < minSpeed) {
+                speed = Math.copySign(minSpeed, speed);
+            }
             set(speed);
             return speed;
         }
@@ -356,7 +403,10 @@ public class Motor extends SubsystemBase {
         double distanceDifference = positionError(currentValue, targetValue);
         double speed = pG * distanceDifference;
 
-        speed = clamp(speed, -motorSpeed, motorSpeed);
+        double maxSpeed = distanceDifference >= 0.0
+            ? (motorUpSpeed != null ? motorUpSpeed : motorSpeed)
+            : (motorDownSpeed != null ? motorDownSpeed : motorSpeed);
+        speed = clamp(speed, -maxSpeed, maxSpeed);
 
         if (speed != 0.0 && Math.abs(speed) < minSpeed) {
             speed = Math.copySign(minSpeed, speed);
