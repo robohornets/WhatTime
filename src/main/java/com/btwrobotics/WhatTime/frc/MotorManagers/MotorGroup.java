@@ -86,6 +86,13 @@ public class MotorGroup extends SubsystemBase {
         return this;
     }
 
+    public MotorGroup setAccelerationSteps(int accelerationSteps) {
+        for (Motor motor : motors) {
+            motor.setAccelerationSteps(accelerationSteps);
+        }
+        return this;
+    }
+
     public MotorGroup setFree(boolean free) {
         for (Motor motor : motors) {
             motor.setFree(free);
