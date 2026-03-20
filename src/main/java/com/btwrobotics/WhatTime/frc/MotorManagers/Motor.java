@@ -27,6 +27,7 @@ public class Motor extends SubsystemBase {
     private static final double DEFAULT_HOLD_SPEED = 0.0;
     private static final double DEFAULT_THRESHOLD = 0.025;
     private static final double DEFAULT_PG = 0.1;
+    private static final int DEFAULT_ACCELERATION_STEPS = 50;
     private static final DoubleSupplier DEFAULT_POSITION_DOUBLE_SUPPLIER = null;
 
     private final TalonFX motor;
@@ -49,9 +50,9 @@ public class Motor extends SubsystemBase {
     private boolean isHolding;
     private boolean isEnabled;
     private boolean isGoTo;
+    private double currentSpeed;
 
-    @SuppressWarnings("unused")
-    private int deccelerateSteps;
+    private int accelerationSteps;
 
     /**
      * Creates a Motor object wrapping a TalonFX motor.
@@ -114,8 +115,9 @@ public class Motor extends SubsystemBase {
         this.isHolding = false;
         this.isEnabled = false;
         this.isGoTo = false;
+        this.currentSpeed = 0.0;
 
-        this.deccelerateSteps = 50;
+        this.accelerationSteps = DEFAULT_ACCELERATION_STEPS;
 
         setDefaultCommand(Commands.run(this::defaultCommand, this));
     }
@@ -208,6 +210,12 @@ public class Motor extends SubsystemBase {
             }
         }
         this.motorDownSpeed = motorDownSpeed;
+        return this;
+    }
+
+    public Motor setAccelerationSteps(int accelerationSteps) {
+        validateNonNegative(accelerationSteps, "accelerationSteps");
+        this.accelerationSteps = accelerationSteps;
         return this;
     }
 
@@ -353,8 +361,7 @@ public class Motor extends SubsystemBase {
         double speed = 0.0;
 
         if (!isEnabled || !hasTarget) {
-            set(0.0);
-            return 0.0;
+            return applySpeed(0.0);
         }
 
         if (free && !isGoTo) {
@@ -362,8 +369,7 @@ public class Motor extends SubsystemBase {
             if (speed != 0.0 && Math.abs(speed) < minSpeed) {
                 speed = Math.copySign(minSpeed, speed);
             }
-            set(speed);
-            return speed;
+            return applySpeed(speed);
         }
 
         double currentValue = getCurrentValue();
@@ -391,8 +397,7 @@ public class Motor extends SubsystemBase {
         }
 
 
-        set(speed);
-        return speed;
+        return applySpeed(speed);
     }
 
     private void defaultCommand() {
@@ -413,6 +418,34 @@ public class Motor extends SubsystemBase {
         }
 
         return speed;
+    }
+
+    private double applySpeed(double desiredSpeed) {
+        double speed = moveTowardsCurrentSpeed(desiredSpeed);
+        currentSpeed = speed;
+        set(speed);
+        return speed;
+    }
+
+    private double moveTowardsCurrentSpeed(double desiredSpeed) {
+        double maxDelta = getRampStepSize(desiredSpeed);
+        double delta = desiredSpeed - currentSpeed;
+
+        if (Math.abs(delta) <= maxDelta) {
+            return desiredSpeed;
+        }
+
+        return currentSpeed + Math.copySign(maxDelta, delta);
+    }
+
+    private double getRampStepSize(double desiredSpeed) {
+        double referenceSpeed = Math.max(
+            Math.max(motorSpeed, motorUpSpeed != null ? motorUpSpeed : 0.0),
+            motorDownSpeed != null ? motorDownSpeed : 0.0
+        );
+
+        referenceSpeed = Math.max(referenceSpeed, Math.abs(desiredSpeed));
+        return referenceSpeed / accelerationSteps;
     }
 
     private double positionError(double currentValue, double targetValue) {
@@ -439,6 +472,7 @@ public class Motor extends SubsystemBase {
      * @param speed the speed of the motor as a double from -1.0 to 1.0
      */
     public void set(double speed) {
+        currentSpeed = speed;
         double actualSpeed = inverted ? -speed : speed;
         motor.set(actualSpeed);
     }
