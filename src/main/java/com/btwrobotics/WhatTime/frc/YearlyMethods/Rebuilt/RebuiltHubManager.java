@@ -13,27 +13,42 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 
+/**
+ * Tracks whether your alliance's hub is active during a 2026 REBUILT match. Both hubs are active
+ * during auto, the transition shift and endgame; in between, the hubs take turns, starting with
+ * the alliance named in the game-specific message.
+ */
 public class RebuiltHubManager {
+    /** The MatchTimeManager used to schedule each phase change. */
     public MatchTimeManager matchTimeManager;
 
+    /**
+     * Creates a hub manager. Call {@link #scheduleAllInactiveHubChanges()} once afterwards to
+     * start tracking.
+     *
+     * @param matchTimeManager the MatchTimeManager to schedule the phase changes on
+     */
     public RebuiltHubManager(MatchTimeManager matchTimeManager) {
         this.matchTimeManager = matchTimeManager;
     }
 
     private Optional<Alliance> inactiveFirstAlliance = Optional.empty();
 
-    /*
-     * Times
-     * 0 - Auto: Idk if it has a separate timer for auto
-     * 1 - Transition Shift: 2:20-210 or 140s-130s
-     * 2 - Phase 1: 2:10-1:45 or 130s-105s
-     * 3 - Phase 2: 1:45-1:20 or 105s-80s
-     * 4 - Phase 3: 1:20-0:55 or 80s-55s
-     * 5 - Phase 4: 0:55-0:30 or 55s-30s
-     * 6 - Endgame: 0:30-0:00 or 30s-0s
+    /**
+     * A place to keep phase start times. Not filled in by this class. The phases, by time left
+     * in teleop, are:
+     * <ul>
+     *   <li>Transition Shift: 2:20-2:10 (140s-130s)
+     *   <li>Phase 1: 2:10-1:45 (130s-105s)
+     *   <li>Phase 2: 1:45-1:20 (105s-80s)
+     *   <li>Phase 3: 1:20-0:55 (80s-55s)
+     *   <li>Phase 4: 0:55-0:30 (55s-30s)
+     *   <li>Endgame: 0:30-0:00 (30s-0s)
+     * </ul>
      */
     public List<Double> sectionStartTimes = new ArrayList<>();
 
+    /** The alliance whose hub is currently inactive, or empty when unknown. */
     public Optional<Alliance> currentInactiveAlliance = Optional.empty();
 
     /**
@@ -133,23 +148,17 @@ public class RebuiltHubManager {
                 });
     }
 
-    // Sets the current alliance to inactive
-    private Command disableAllianceCommand() {
-        return Commands.runOnce(
-                () -> {
-                    Optional<Alliance> currentAlliance = AllianceManager.getCurrentAlliance();
-                    if (currentAlliance.isPresent()) {
-                        currentInactiveAlliance = currentAlliance;
-                    }
-                });
-    }
-
     /**
      * Indicates whether the current alliance's hub is active
-     * 
+     *
      * @return {@code true} when hub is active
      */
     public boolean hubIsActive() {
+        // Both hubs are active during auto
+        if (DriverStation.isAutonomous()) {
+            return true;
+        }
+
         // Return false (inactive) if no current inactive alliance data
         if (!currentInactiveAlliance.isPresent()) {
             return false;
@@ -172,11 +181,21 @@ public class RebuiltHubManager {
         return inactiveFirstAlliance;
     }
 
+    /**
+     * Publishes the upcoming and past match phases to the default NetworkTables table
+     * ("CustomDashboard"), as "Upcoming Phases" and "Past Phases".
+     */
     public void putPhasesToNetworkTables() {
         NetworkTablesUtil.put("Upcoming Phases", matchTimeManager.pendingTriggerDescriptions);
         NetworkTablesUtil.put("Past Phases", matchTimeManager.completedTriggerDescriptions);
     }
 
+    /**
+     * Publishes the upcoming and past match phases to a NetworkTables table, as
+     * "Upcoming Phases" and "Past Phases".
+     *
+     * @param tableName the name of the table to publish to
+     */
     public void putPhasesToNetworkTables(String tableName) {
         NetworkTablesUtil.put(tableName, "Upcoming Phases", matchTimeManager.pendingTriggerDescriptions);
         NetworkTablesUtil.put(tableName, "Past Phases", matchTimeManager.completedTriggerDescriptions);

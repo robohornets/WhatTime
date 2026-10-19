@@ -5,6 +5,9 @@ import java.util.Optional;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 
+/**
+ * Helpers for working out which alliance the robot is on and which one it's playing against.
+ */
 public class AllianceManager {
     /**
      * Gets the current alliance for the robot from DriverStation.

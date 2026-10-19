@@ -2,68 +2,74 @@ package com.btwrobotics.WhatTime.frc.MotorManagers;
 
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
- * TalonFX wrapper with optional free-drive mode and position control.
+ * A TalonFX that either drives at a speed or moves to and holds a position.
+ *
+ * <p>The motor updates itself every loop, so one call is enough: {@code drive(0.5)} keeps
+ * spinning until {@link #stop()}, and {@code goTo(30)} moves there and holds. The motor stops
+ * whenever the robot is disabled.
+ *
+ * <pre>{@code
+ * Motor intake = new Motor(10);
+ * controller.a().whileTrue(intake.driveCommand(0.8)); // runs while held, stops on release
+ *
+ * Motor elevator = new Motor(11).setRange(0, 50).setMotorSpeed(0.6).setAccelerationTime(0.3);
+ * controller.b().onTrue(elevator.goToCommand(30));    // moves to 30 and holds there
+ * }</pre>
  */
 public class Motor extends SubsystemBase {
-    private static final boolean DEFAULT_INVERTED = false;
-    private static final double DEFAULT_MIN_VALUE = -1.0;
-    private static final double DEFAULT_MAX_VALUE = 1.0;
-    private static final double DEFAULT_MIN_SPEED = 0.0;
-    private static final double DEFAULT_MOTOR_SPEED = 1.0;
-    private static final boolean DEFAULT_FREE = true;
-    private static final double DEFAULT_HOLD_SPEED = 0.0;
-    private static final double DEFAULT_THRESHOLD = 0.025;
-    private static final double DEFAULT_PG = 0.1;
-    private static final int DEFAULT_ACCELERATION_STEPS = 50;
-    private static final DoubleSupplier DEFAULT_POSITION_DOUBLE_SUPPLIER = null;
-
     private final TalonFX motor;
 
     private boolean inverted;
-    private double minValue;
-    private double maxValue;
-    private double minSpeed;
-    private double motorSpeed;
+    private boolean enabled = true;
+    private double minValue = Double.NEGATIVE_INFINITY;
+    private double maxValue = Double.POSITIVE_INFINITY;
+    /** Length of one full turn when continuous, 0 when not. */
+    private double fullTurn = 0.0;
+    private double minSpeed = 0.0;
+    private double motorSpeed = 1.0;
     private Double motorUpSpeed;
     private Double motorDownSpeed;
-    private boolean free;
-    private double holdSpeed;
-    private double threshold;
-    private double pG;
+    private double holdSpeed = 0.0;
+    private double threshold = 0.025;
+    private double kP = 0.1;
+    /** Limits how fast the output can change, or null when acceleration is off. */
+    private SlewRateLimiter accelerationLimiter;
     private DoubleSupplier positionSupplier;
 
-    private double targetValue;
-    private boolean hasTarget;
-    private boolean isHolding;
-    private boolean isEnabled;
-    private boolean isGoTo;
-    private double currentSpeed;
-
-    private int accelerationSteps;
+    /** Speed to drive at when there is no position target. */
+    private double driveSpeed;
+    /** Position to move to and hold, or null when driving. */
+    private Double target;
+    private boolean holding;
+    /** Output sent to the motor last loop. */
+    private double output;
 
     /**
      * Creates a Motor object wrapping a TalonFX motor.
-     * 
+     *
      * @param deviceId the id assigned to the TalonFX motor
      */
     public Motor(int deviceId) {
-        this(deviceId, DEFAULT_INVERTED);
+        this(deviceId, false);
     }
 
     /**
      * Creates a Motor object wrapping a TalonFX motor.
-     * 
+     *
      * @param deviceId the id assigned to the TalonFX motor
-     * @param inverted whether the motor should be inverted by default
+     * @param inverted whether the motor should be inverted
      */
     public Motor(int deviceId, boolean inverted) {
         this(new TalonFX(deviceId), inverted);
@@ -71,456 +77,471 @@ public class Motor extends SubsystemBase {
 
     /**
      * Creates a Motor object wrapping a TalonFX motor.
-     * 
+     *
      * @param deviceId the id assigned to the TalonFX motor
      * @param canbus the name of the canbus the motor is on
      */
     public Motor(int deviceId, String canbus) {
-        this(deviceId, canbus, DEFAULT_INVERTED);
+        this(deviceId, canbus, false);
     }
 
     /**
      * Creates a Motor object wrapping a TalonFX motor.
-     * 
+     *
      * @param deviceId the id assigned to the TalonFX motor
      * @param canbus the name of the canbus the motor is on
-     * @param inverted whether the motor should be inverted by default
+     * @param inverted whether the motor should be inverted
      */
     public Motor(int deviceId, String canbus, boolean inverted) {
-        this(new TalonFX(deviceId, canbus), inverted);
+        this(new TalonFX(deviceId, new CANBus(canbus)), inverted);
     }
 
     private Motor(TalonFX motor, boolean inverted) {
         this.motor = motor;
         this.inverted = inverted;
-
-        this.minValue = DEFAULT_MIN_VALUE;
-        this.maxValue = DEFAULT_MAX_VALUE;
-        this.minSpeed = DEFAULT_MIN_SPEED;
-        this.motorSpeed = DEFAULT_MOTOR_SPEED;
-        this.motorUpSpeed = null;
-        this.motorDownSpeed = null;
-        this.free = DEFAULT_FREE;
-        this.holdSpeed = DEFAULT_HOLD_SPEED;
-        this.threshold = DEFAULT_THRESHOLD;
-        this.pG = DEFAULT_PG;
-        this.positionSupplier = DEFAULT_POSITION_DOUBLE_SUPPLIER;
-
-        this.targetValue = 0.0;
-        this.hasTarget = false;
-        this.isHolding = false;
-        this.isEnabled = false;
-        this.isGoTo = false;
-        this.currentSpeed = 0.0;
-
-        this.accelerationSteps = DEFAULT_ACCELERATION_STEPS;
-
-        setDefaultCommand(Commands.run(this::defaultCommand, this));
     }
 
     /**
      * Creates a motor from an existing TalonFX object.
-     * 
+     *
      * @param motor the TalonFX motor
-     * @param inverted whether the motor should be inverted by default
+     * @param inverted whether the motor should be inverted
      * @return A Motor object that wraps the input TalonFX object
      */
     public static Motor of(TalonFX motor, boolean inverted) {
         return new Motor(motor, inverted);
     }
 
+    /**
+     * Flips the motor's direction, so positive speeds spin it the other way. The TalonFX's
+     * built-in encoder is flipped to match, so positions still go up when driving forward.
+     *
+     * @param inverted whether the motor should be inverted
+     * @return this motor, for chaining
+     */
     public Motor setInverted(boolean inverted) {
         this.inverted = inverted;
         return this;
     }
 
+    /**
+     * Sets just the lower soft limit. See {@link #setRange}.
+     *
+     * @param minValue the lowest position the motor may drive to
+     * @return this motor, for chaining
+     */
     public Motor setMinValue(double minValue) {
-        validateRange(minValue, this.maxValue);
-        this.minValue = minValue;
-        return this;
+        return setRange(minValue, maxValue);
     }
 
+    /**
+     * Sets just the upper soft limit. See {@link #setRange}.
+     *
+     * @param maxValue the highest position the motor may drive to
+     * @return this motor, for chaining
+     */
     public Motor setMaxValue(double maxValue) {
-        validateRange(this.minValue, maxValue);
-        this.maxValue = maxValue;
-        return this;
+        return setRange(minValue, maxValue);
     }
 
+    /**
+     * Sets soft limits. The motor won't drive further past them, and {@link #goTo} targets are
+     * clamped into them. With acceleration on, the motor only starts slowing down once it reaches
+     * a limit, so leave some room before any hard stop. There are no limits by default.
+     *
+     * @param minValue the lowest position the motor may drive to
+     * @param maxValue the highest position the motor may drive to
+     * @return this motor, for chaining
+     */
     public Motor setRange(double minValue, double maxValue) {
-        validateRange(minValue, maxValue);
+        if (!(maxValue > minValue)) {
+            throw new IllegalArgumentException("maxValue must be greater than minValue.");
+        }
         this.minValue = minValue;
         this.maxValue = maxValue;
-        return this;
-    }
-
-    public Motor setMinSpeed(double minSpeed) {
-        validateFinite(minSpeed, "minSpeed");
-        validateNonNegative(minSpeed, "minSpeed");
-        if (minSpeed > this.motorSpeed) {
-            throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
-        }
-        this.minSpeed = minSpeed;
-        return this;
-    }
-
-    public Motor setMotorSpeed(double motorSpeed) {
-        validateFinite(motorSpeed, "motorSpeed");
-        validateNonNegative(motorSpeed, "motorSpeed");
-        if (this.minSpeed > motorSpeed) {
-            throw new IllegalArgumentException("minSpeed cannot exceed motorSpeed.");
-        }
-        this.motorSpeed = motorSpeed;
         return this;
     }
 
     /**
-     * Sets the maximum speed used when moving toward a higher position target.
-     * Overrides {@code motorSpeed} for position management. Pass {@code null} to fall back to {@code motorSpeed}.
+     * For mechanisms that spin all the way around, like a turret. {@code min} and {@code max} are
+     * the same spot, and {@link #goTo} takes the shortest way to the target: with
+     * {@code setContinuous(0, 1)}, going from 0.9 to 0.1 moves forward 0.2 instead of back 0.8.
+     * Works no matter how many times the mechanism has spun around. Don't combine with soft
+     * limits, since the shortest way may cross them.
      *
-     * @param motorUpSpeed the upward speed cap, or {@code null} to use motorSpeed
+     * @param min the start of one full turn, e.g. 0
+     * @param max the end of one full turn, e.g. 1 for rotations or 360 for degrees
+     * @return this motor, for chaining
+     */
+    public Motor setContinuous(double min, double max) {
+        if (!(max > min)) {
+            throw new IllegalArgumentException("max must be greater than min.");
+        }
+        this.fullTurn = max - min;
+        return this;
+    }
+
+    /**
+     * Sets the smallest non-zero speed the motor will run at, so it doesn't stall on friction
+     * when it's close to a target. Must not be more than motorSpeed.
+     *
+     * @param minSpeed from 0.0 to motorSpeed
+     * @return this motor, for chaining
+     */
+    public Motor setMinSpeed(double minSpeed) {
+        this.minSpeed = check(minSpeed, 0.0, motorSpeed, "minSpeed");
+        return this;
+    }
+
+    /**
+     * Sets the speed {@link #drive()} runs at, and the top speed when moving with {@link #goTo}.
+     *
+     * @param motorSpeed from minSpeed to 1.0
+     * @return this motor, for chaining
+     */
+    public Motor setMotorSpeed(double motorSpeed) {
+        this.motorSpeed = check(motorSpeed, minSpeed, 1.0, "motorSpeed");
+        return this;
+    }
+
+    /**
+     * Sets the top {@link #goTo} speed when moving toward higher positions, e.g. a slower speed
+     * for lifting an elevator.
+     *
+     * @param motorUpSpeed from minSpeed to 1.0, or {@code null} to use motorSpeed
+     * @return this motor, for chaining
      */
     public Motor setMotorUpSpeed(Double motorUpSpeed) {
-        if (motorUpSpeed != null) {
-            validateFinite(motorUpSpeed, "motorUpSpeed");
-            validateNonNegative(motorUpSpeed, "motorUpSpeed");
-            if (this.minSpeed > motorUpSpeed) {
-                throw new IllegalArgumentException("minSpeed cannot exceed motorUpSpeed.");
-            }
-        }
-        this.motorUpSpeed = motorUpSpeed;
+        this.motorUpSpeed = motorUpSpeed == null ? null : check(motorUpSpeed, minSpeed, 1.0, "motorUpSpeed");
         return this;
     }
 
     /**
-     * Sets the maximum speed used when moving toward a lower position target.
-     * Overrides {@code motorSpeed} for position management. Pass {@code null} to fall back to {@code motorSpeed}.
+     * Sets the top {@link #goTo} speed when moving toward lower positions, e.g. a slower speed
+     * so an elevator doesn't slam down.
      *
-     * @param motorDownSpeed the downward speed cap, or {@code null} to use motorSpeed
+     * @param motorDownSpeed from minSpeed to 1.0, or {@code null} to use motorSpeed
+     * @return this motor, for chaining
      */
     public Motor setMotorDownSpeed(Double motorDownSpeed) {
-        if (motorDownSpeed != null) {
-            validateFinite(motorDownSpeed, "motorDownSpeed");
-            validateNonNegative(motorDownSpeed, "motorDownSpeed");
-            if (this.minSpeed > motorDownSpeed) {
-                throw new IllegalArgumentException("minSpeed cannot exceed motorDownSpeed.");
-            }
-        }
-        this.motorDownSpeed = motorDownSpeed;
-        return this;
-    }
-
-    public Motor setAccelerationSteps(int accelerationSteps) {
-        validateNonNegative(accelerationSteps, "accelerationSteps");
-        this.accelerationSteps = accelerationSteps;
+        this.motorDownSpeed = motorDownSpeed == null ? null : check(motorDownSpeed, minSpeed, 1.0, "motorDownSpeed");
         return this;
     }
 
     /**
-     * Sets the free behaviour of the motor.
-     * 
-     * @param free whether the motor should move freely
+     * Makes the motor change speed gradually instead of jumping. This applies to every change:
+     * speeding up, slowing down, stopping and reversing (which slows to zero first). The only
+     * exception is the robot being disabled, which cuts power right away no matter what.
+     *
+     * @param seconds time to go from stopped to full speed (or full speed to stopped);
+     *     0, the default, turns acceleration off
+     * @return this motor, for chaining
      */
-    public Motor setFree(boolean free) {
-        this.free = free;
+    public Motor setAccelerationTime(double seconds) {
+        check(seconds, 0.0, Double.POSITIVE_INFINITY, "accelerationTime");
+        accelerationLimiter = seconds > 0.0 ? new SlewRateLimiter(1.0 / seconds, -1.0 / seconds, output) : null;
         return this;
     }
 
+    /**
+     * Sets the output used once the motor reaches its {@link #goTo} target, e.g. a little
+     * upward power to hold an elevator against gravity. Defaults to 0.
+     *
+     * @param holdSpeed from -1.0 to 1.0
+     * @return this motor, for chaining
+     */
     public Motor setHoldSpeed(double holdSpeed) {
-        validateFinite(holdSpeed, "holdSpeed");
-        this.holdSpeed = holdSpeed;
+        this.holdSpeed = check(holdSpeed, -1.0, 1.0, "holdSpeed");
         return this;
     }
 
+    /**
+     * Sets how close to the {@link #goTo} target counts as being there. Once inside it the motor
+     * switches to holdSpeed, and it only starts correcting again after drifting twice as far.
+     *
+     * @param threshold the allowed distance from the target, in position units
+     * @return this motor, for chaining
+     */
     public Motor setThreshold(double threshold) {
-        validateFinite(threshold, "threshold");
-        validateNonNegative(threshold, "threshold");
-        this.threshold = threshold;
+        this.threshold = check(threshold, 0.0, Double.POSITIVE_INFINITY, "threshold");
         return this;
     }
 
-    public Motor setPG(double pG) {
-        validateFinite(pG, "pG");
-        this.pG = pG;
+    /**
+     * Sets how hard {@link #goTo} pushes toward the target: speed = kP * distance to target,
+     * capped at the top speed. Higher gets there faster but can overshoot.
+     *
+     * @param kP the proportional gain, 0 or more
+     * @return this motor, for chaining
+     */
+    public Motor setKP(double kP) {
+        this.kP = check(kP, 0.0, Double.POSITIVE_INFINITY, "kP");
         return this;
     }
 
+    /**
+     * Reads the position from somewhere other than the TalonFX's built-in encoder, e.g. a
+     * through-bore or CANcoder. This is used as-is, without flipping for inversion.
+     *
+     * @param positionSupplier where to read the position from, or {@code null} for the built-in encoder
+     * @return this motor, for chaining
+     */
     public Motor setPositionSupplier(DoubleSupplier positionSupplier) {
         this.positionSupplier = positionSupplier;
         return this;
     }
 
-    public boolean toggleEnabled() {
-        isEnabled = !isEnabled;
-        return isEnabled;
-    }
-
-    public boolean toggleEnabled(Boolean enabled) {
-        if (enabled == null) {
-            return toggleEnabled();
+    /**
+     * Enables or disables the motor. Disabling stops it and ignores {@link #drive} and
+     * {@link #goTo} until it's enabled again. Motors start enabled.
+     *
+     * @param enabled whether the motor should be enabled
+     * @return this motor, for chaining
+     */
+    public Motor setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            stop();
         }
-
-        isEnabled = enabled;
-        return isEnabled;
-    }
-
-    public boolean isEnabled() {
-        return isEnabled;
+        return this;
     }
 
     /**
-     * Drive the motor with free rotation at the set motor speed.
+     * Flips between enabled and disabled. See {@link #setEnabled}.
+     *
+     * @return whether the motor is now enabled
      */
+    public boolean toggleEnabled() {
+        setEnabled(!enabled);
+        return enabled;
+    }
+
+    /**
+     * Whether the motor is enabled. See {@link #setEnabled}.
+     *
+     * @return whether the motor is enabled
+     */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /** Drives forward at motorSpeed until stopped or told to do something else. */
     public void drive() {
         drive(motorSpeed);
     }
 
     /**
-     * Drive the motor with free rotation at the set motor speed.
-     * 
-     * @param reverse whether the direction of the motor should be reversed
+     * Drives at motorSpeed until stopped or told to do something else.
+     *
+     * @param reverse whether to drive backwards
      */
     public void drive(boolean reverse) {
-        drive(reverse ? -motorSpeed: motorSpeed);
+        drive(reverse ? -motorSpeed : motorSpeed);
     }
 
     /**
-     * Runs the motor with free rotation at a set speed.
-     * 
-     * @param speed the speed to run the motor at as a double ranging from -1.0 to 1.0
+     * Drives at {@code speed} until stopped or told to do something else. Clears any
+     * {@link #goTo} target.
+     *
+     * @param speed from -1.0 to 1.0, negative for backwards
      */
     public void drive(double speed) {
-        if (!free) {
-            throw new IllegalStateException(".drive() is disabled; use .goTo() when not using free rotation.");
-        }
-        if (!isEnabled) {
-            warn("Motor is disabled.");
+        if (!enabled) {
             return;
         }
-
-        if (speed != 0.0 && Math.abs(speed) < minSpeed) {
-            warn("Speed too slow (" + Math.abs(speed) + " < " + minSpeed + "), running at minimum speed.");
-            speed = Math.copySign(minSpeed, speed);
-        }
-
-        targetValue = speed;
-        hasTarget = true;
-        isHolding = false;
-        isGoTo = false;
-    }
-
-    public void goTo(double target) {
-        if (!isEnabled) {
-            warn("Motor is disabled.");
-            return;
-        }
-
-        targetValue = free ? wrapValue(target) : clamp(target, minValue, maxValue);
-        hasTarget = true;
-        isHolding = false;
-        isGoTo = true;
-    }
-
-    /** 
-     * Sets the current target position.
-     * The motor will move to and hold within the threshold of this position.
-     * 
-     * @param target the target position for the motor as a double
-     */
-    public void setTarget(double target) {
-        goTo(target);
+        target = null;
+        driveSpeed = applyMinSpeed(MathUtil.clamp(speed, -1.0, 1.0));
     }
 
     /**
-     * Sets the neutral mode of the motor
-     * 
-    *  @param neutralModeValue the neutral mode to apply (BRAKE or COAST)
-     * @see NeutralModeValue#Brake
-     * @see NeutralModeValue#Coast
+     * Moves to {@code position} and holds it there until stopped or told to do something else.
+     * The position is clamped into the soft limits.
+     *
+     * @param position the position to move to, in the same units as {@link #getPosition}
+     */
+    public void goTo(double position) {
+        if (!enabled) {
+            return;
+        }
+        target = MathUtil.clamp(position, minValue, maxValue);
+        holding = false;
+    }
+
+    /**
+     * Same as {@link #goTo}.
+     *
+     * @param position the position to move to
+     */
+    public void setTarget(double position) {
+        goTo(position);
+    }
+
+    /** Stops driving and clears any target. With acceleration on, the motor slows down to a stop. */
+    public void stop() {
+        target = null;
+        driveSpeed = 0.0;
+    }
+
+    /**
+     * Whether the motor has a {@link #goTo} target and is within the threshold of it.
+     *
+     * @return whether the motor is at its target
+     */
+    public boolean isAtTarget() {
+        return target != null && Math.abs(error(getPosition())) <= threshold;
+    }
+
+    /**
+     * A command that drives at {@code speed} while it runs and stops when it ends. Made for
+     * buttons: {@code controller.a().whileTrue(intake.driveCommand(0.8))}.
+     *
+     * @param speed from -1.0 to 1.0, negative for backwards
+     * @return the command
+     */
+    public Command driveCommand(double speed) {
+        return startEnd(() -> drive(speed), this::stop);
+    }
+
+    /**
+     * A command that moves to {@code position} and finishes once it's there. The motor keeps
+     * holding the position afterwards, so it can be chained:
+     * {@code elevator.goToCommand(30).andThen(scoreCommand)}.
+     *
+     * @param position the position to move to
+     * @return the command
+     */
+    public Command goToCommand(double position) {
+        return runOnce(() -> goTo(position)).andThen(Commands.waitUntil(this::isAtTarget));
+    }
+
+    /**
+     * A command that stops the motor and lets it coast for {@code seconds}, e.g. so a mechanism
+     * can settle against a hard stop, then switches back to brake mode (even if interrupted).
+     *
+     * @param seconds how long to coast
+     * @return the command
+     */
+    public Command brakelessReset(double seconds) {
+        return startEnd(
+            () -> {
+                stop();
+                setNeutralMode(NeutralModeValue.Coast);
+            },
+            () -> setNeutralMode(NeutralModeValue.Brake)
+        ).withTimeout(seconds);
+    }
+
+    /**
+     * Sets what the motor does when it has no power: brake to resist turning, or coast to spin
+     * freely.
+     *
+     * @param neutralModeValue {@link NeutralModeValue#Brake} or {@link NeutralModeValue#Coast}
      */
     public void setNeutralMode(NeutralModeValue neutralModeValue) {
         motor.setNeutralMode(neutralModeValue);
     }
 
-    public Command brakelessReset(double durationSeconds) {
-        if (durationSeconds < 0.0) {
-            throw new IllegalArgumentException("duration must be >= 0.");
-        }
-
-        return Commands.sequence(
-            Commands.runOnce(() -> setNeutralMode(NeutralModeValue.Coast), this),
-            Commands.waitSeconds(durationSeconds),
-            Commands.runOnce(() -> setNeutralMode(NeutralModeValue.Brake), this)
-        );
-    }
-
-    public double update() {
-        double speed = 0.0;
-
-        if (!isEnabled || !hasTarget) {
-            return applySpeed(0.0);
-        }
-
-        if (free && !isGoTo) {
-            speed = clamp(targetValue, -1.0, 1.0);
-            if (speed != 0.0 && Math.abs(speed) < minSpeed) {
-                speed = Math.copySign(minSpeed, speed);
-            }
-            return applySpeed(speed);
-        }
-
-        double currentValue = getCurrentValue();
-        double error = Math.abs(positionError(currentValue, targetValue));
-
-        if (error <= threshold) {
-            isHolding = true;
-        } else if (error > threshold * 2.0) {
-            isHolding = false;
-        }
-
-        if (isHolding) {
-            speed = holdSpeed;
-        } else {
-            speed = calculateSpeedWithAcceleration(currentValue);
-        }
-
-        if (!free) {
-            if (currentValue >= maxValue && speed > 0.0) {
-                speed = 0.0;
-            }
-            if (currentValue <= minValue && speed < 0.0) {
-                speed = 0.0;
+    /**
+     * Runs every loop (called by the command scheduler) and sets the motor's output from
+     * whatever it was last told to do. You don't need to call this.
+     */
+    @Override
+    public void periodic() {
+        if (DriverStation.isDisabled()) {
+            stop();
+            // The robot cuts power itself when disabled, so ramp up from zero once re-enabled.
+            if (accelerationLimiter != null) {
+                accelerationLimiter.reset(0.0);
             }
         }
 
+        double position = getPosition();
+        double speed = target == null ? driveSpeed : positionSpeed(position);
+        if ((position >= maxValue && speed > 0.0) || (position <= minValue && speed < 0.0)) {
+            speed = 0.0;
+        }
 
-        return applySpeed(speed);
+        output = accelerationLimiter != null ? accelerationLimiter.calculate(speed) : speed;
+        motor.set(inverted ? -output : output);
     }
 
-    private void defaultCommand() {
-        update();
-    }
+    /** Works out the speed to move toward the target at, or holdSpeed once there. */
+    private double positionSpeed(double position) {
+        double error = error(position);
 
-    private double calculateSpeedWithAcceleration(double currentValue) {
-        double distanceDifference = positionError(currentValue, targetValue);
-        double speed = pG * distanceDifference;
+        // Wider band to leave holding than to enter it, so it doesn't flicker at the edge.
+        if (Math.abs(error) <= threshold) {
+            holding = true;
+        } else if (Math.abs(error) > threshold * 2.0) {
+            holding = false;
+        }
+        if (holding) {
+            return holdSpeed;
+        }
 
-        double maxSpeed = distanceDifference >= 0.0
+        double maxSpeed = error > 0.0
             ? (motorUpSpeed != null ? motorUpSpeed : motorSpeed)
             : (motorDownSpeed != null ? motorDownSpeed : motorSpeed);
-        speed = clamp(speed, -maxSpeed, maxSpeed);
-
-        if (speed != 0.0 && Math.abs(speed) < minSpeed) {
-            speed = Math.copySign(minSpeed, speed);
-        }
-
-        return speed;
+        return applyMinSpeed(MathUtil.clamp(kP * error, -maxSpeed, maxSpeed));
     }
 
-    private double applySpeed(double desiredSpeed) {
-        double speed = moveTowardsCurrentSpeed(desiredSpeed);
-        currentSpeed = speed;
-        set(speed);
-        return speed;
+    /** Distance from {@code position} to the target, going the short way around when continuous. */
+    private double error(double position) {
+        double error = target - position;
+        return fullTurn > 0.0 ? MathUtil.inputModulus(error, -fullTurn / 2.0, fullTurn / 2.0) : error;
     }
 
-    private double moveTowardsCurrentSpeed(double desiredSpeed) {
-        double maxDelta = getRampStepSize(desiredSpeed);
-        double delta = desiredSpeed - currentSpeed;
-
-        if (Math.abs(delta) <= maxDelta) {
-            return desiredSpeed;
-        }
-
-        return currentSpeed + Math.copySign(maxDelta, delta);
-    }
-
-    private double getRampStepSize(double desiredSpeed) {
-        double referenceSpeed = Math.max(
-            Math.max(motorSpeed, motorUpSpeed != null ? motorUpSpeed : 0.0),
-            motorDownSpeed != null ? motorDownSpeed : 0.0
-        );
-
-        referenceSpeed = Math.max(referenceSpeed, Math.abs(desiredSpeed));
-        return referenceSpeed / accelerationSteps;
-    }
-
-    private double positionError(double currentValue, double targetValue) {
-        if (!free) {
-            return targetValue - currentValue;
-        }
-
-        double span = maxValue - minValue;
-        double raw = targetValue - currentValue;
-        double shifted = raw + span / 2.0;
-        double wrappedShifted = shifted - span * Math.floor(shifted / span);
-        return wrappedShifted - span / 2.0;
-    }
-
-    private double wrapValue(double value) {
-        double span = maxValue - minValue;
-        double shifted = value - minValue;
-        return shifted - span * Math.floor(shifted / span) + minValue;
+    /** Raises a non-zero speed to at least minSpeed, keeping its direction. */
+    private double applyMinSpeed(double speed) {
+        return speed == 0.0 ? 0.0 : Math.copySign(Math.max(Math.abs(speed), minSpeed), speed);
     }
 
     /**
-     * Sets the speed of the motor while respecting the motor's inverted setting.
-     * 
-     * @param speed the speed of the motor as a double from -1.0 to 1.0
+     * The motor's current position: from the position supplier if one is set, otherwise from the
+     * TalonFX's built-in encoder in rotations (flipped when inverted).
+     *
+     * @return the current position
      */
-    public void set(double speed) {
-        currentSpeed = speed;
-        double actualSpeed = inverted ? -speed : speed;
-        motor.set(actualSpeed);
-    }
-
-    public double getCurrentValue() {
+    public double getPosition() {
         if (positionSupplier != null) {
             return positionSupplier.getAsDouble();
         }
-        return getPosition();
+        double position = motor.getPosition().getValueAsDouble();
+        return inverted ? -position : position;
     }
 
-    public TalonFX getTalonFX() {
-        return motor;
-    }
-
+    /**
+     * The TalonFX this wraps, for anything this class doesn't cover, like current limits.
+     *
+     * @return the TalonFX
+     */
     public TalonFX getMotor() {
         return motor;
     }
 
+    /**
+     * Same as {@link #getMotor}.
+     *
+     * @return the TalonFX
+     */
+    public TalonFX getTalonFX() {
+        return motor;
+    }
+
+    /**
+     * Whether the motor is inverted. See {@link #setInverted}.
+     *
+     * @return whether the motor is inverted
+     */
     public boolean isInverted() {
         return inverted;
     }
 
-    public double getPosition() {
-        return motor.getPosition().getValueAsDouble();
-    }
-
-    private static void validateRange(double minValue, double maxValue) {
-        validateFinite(minValue, "minValue");
-        validateFinite(maxValue, "maxValue");
-        if (maxValue <= minValue) {
-            throw new IllegalArgumentException("maxValue must be greater than minValue.");
+    /** Throws if {@code value} isn't a number from {@code min} to {@code max}, otherwise returns it. */
+    private static double check(double value, double min, double max, String name) {
+        if (!(Double.isFinite(value) && value >= min && value <= max)) {
+            throw new IllegalArgumentException(name + " must be between " + min + " and " + max + ", got " + value);
         }
-    }
-
-    private static void validateNonNegative(double value, String name) {
-        if (value < 0.0) {
-            throw new IllegalArgumentException(name + " must be >= 0.");
-        }
-    }
-
-    private static void validateFinite(double value, String name) {
-        if (!Double.isFinite(value)) {
-            throw new IllegalArgumentException(name + " must be finite.");
-        }
-    }
-
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private static void warn(String message) {
-        DriverStation.reportWarning(message, false);
+        return value;
     }
 }

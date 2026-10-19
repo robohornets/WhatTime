@@ -21,3 +21,6 @@ gradle-app.setting
 .classpath
 
 .DS_Store
+# Editor/IDE build output
+bin/
+.gradle-local/
