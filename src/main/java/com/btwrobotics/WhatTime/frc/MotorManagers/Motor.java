@@ -9,6 +9,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.ControlRequest;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.ForwardLimitTypeValue;
@@ -100,6 +101,8 @@ public class Motor extends SubsystemBase {
     private double output;
     private final MotionMagicVoltage motionMagicRequest = new MotionMagicVoltage(0);
     private final VelocityVoltage velocityRequest = new VelocityVoltage(0);
+    /** Output is sent as a share of 12 V, not of the battery, so it doesn't weaken as the battery sags. */
+    private final VoltageOut voltageRequest = new VoltageOut(0);
 
     /**
      * Creates a Motor object wrapping a TalonFX motor.
@@ -878,7 +881,7 @@ public class Motor extends SubsystemBase {
                 speed = 0.0;
             }
             output = accelerationLimiter != null ? accelerationLimiter.calculate(speed) : speed;
-            motor.set(output);
+            motor.setControl(voltageRequest.withOutput(output * 12.0));
         }
 
         if (dashboardTable != null) {
@@ -889,7 +892,7 @@ public class Motor extends SubsystemBase {
     /** Sends a closed-loop request, and keeps the acceleration limit in step so switching back to driving is smooth. */
     private void runOnTalonFX(ControlRequest request) {
         motor.setControl(request);
-        output = motor.getDutyCycle().getValueAsDouble();
+        output = motor.getMotorVoltage().getValueAsDouble() / 12.0;
         if (accelerationLimiter != null) {
             accelerationLimiter.reset(output);
         }
