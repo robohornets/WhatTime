@@ -11,6 +11,7 @@ import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.AppliedRotorPolarityValue;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.ForwardLimitTypeValue;
 import com.ctre.phoenix6.signals.ForwardLimitValue;
@@ -75,6 +76,8 @@ public class Motor extends SubsystemBase {
     private double lastError = Double.NaN;
     /** FPGA time of the last goTo loop, for measuring how long each loop really took. */
     private double lastTime;
+    /** FPGA time this motor's settings were last re-applied by {@link #enforceConfig}. */
+    private double lastConfigApply = Double.NEGATIVE_INFINITY;
     /** Limits how fast the output can change, or null when acceleration is off. */
     private SlewRateLimiter accelerationLimiter;
     private DoubleSupplier positionSupplier;
@@ -862,6 +865,7 @@ public class Motor extends SubsystemBase {
      */
     @Override
     public void periodic() {
+        enforceConfig();
         if (DriverStation.isDisabled()) {
             stop();
             // The robot cuts power itself when disabled, so ramp up from zero once re-enabled.
@@ -886,6 +890,27 @@ public class Motor extends SubsystemBase {
 
         if (dashboardTable != null) {
             publishToDashboard(position);
+        }
+    }
+
+    /**
+     * Puts this motor's settings back if something else changed them: the TalonFX rebooting, or
+     * code applying its own configuration to the TalonFX. Only this class should configure it,
+     * through its setters and {@link #configure}. Inversion is checked every loop since it's the
+     * setting most often clobbered; retries are at most once a second so a missing motor doesn't
+     * stall the loop.
+     */
+    private void enforceConfig() {
+        AppliedRotorPolarityValue expected = isInverted()
+            ? AppliedRotorPolarityValue.PositiveIsClockwise
+            : AppliedRotorPolarityValue.PositiveIsCounterClockwise;
+        var polarity = motor.getAppliedRotorPolarity();
+        boolean changed = motor.hasResetOccurred()
+            || (polarity.getStatus().isOK() && polarity.getValue() != expected);
+        double now = Timer.getFPGATimestamp();
+        if (changed && now - lastConfigApply >= 1.0) {
+            lastConfigApply = now;
+            motor.getConfigurator().apply(config);
         }
     }
 
