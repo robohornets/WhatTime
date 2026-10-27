@@ -57,6 +57,8 @@ public class Motor extends SubsystemBase {
     private final TalonFXConfiguration config = new TalonFXConfiguration();
 
     private boolean enabled = true;
+    /** Kept apart from config so {@link #configure} can't lose it, e.g. by replacing config.MotorOutput. */
+    private boolean inverted;
     private double minValue = Double.NEGATIVE_INFINITY;
     private double maxValue = Double.POSITIVE_INFINITY;
     /** Length of one full turn when continuous, 0 when not. */
@@ -175,9 +177,14 @@ public class Motor extends SubsystemBase {
      * @return this motor, for chaining
      */
     public Motor setInverted(boolean inverted) {
-        config.MotorOutput.Inverted = inverted ? InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
+        this.inverted = inverted;
+        applyInversionToConfig();
         motor.getConfigurator().apply(config.MotorOutput);
         return this;
+    }
+
+    private void applyInversionToConfig() {
+        config.MotorOutput.Inverted = inverted ? InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
     }
 
     /**
@@ -603,12 +610,15 @@ public class Motor extends SubsystemBase {
      * The configuration starts as whatever was on the TalonFX when this motor was created (the
      * TalonFX defaults, unless changed in Phoenix Tuner) plus whatever this motor's other setters
      * changed. Motor's own features (soft limits, acceleration, speeds) work on top of these.
+     * Inversion is always kept as set by {@link #setInverted}, even if {@code changes} replaces
+     * {@code MotorOutput}.
      *
      * @param changes edits to make to the configuration
      * @return this motor, for chaining
      */
     public Motor configure(Consumer<TalonFXConfiguration> changes) {
         changes.accept(config);
+        applyInversionToConfig();
         motor.getConfigurator().apply(config);
         return this;
     }
@@ -1156,7 +1166,7 @@ public class Motor extends SubsystemBase {
      * @return whether the motor is inverted
      */
     public boolean isInverted() {
-        return config.MotorOutput.Inverted == InvertedValue.Clockwise_Positive;
+        return inverted;
     }
 
     /** Throws if {@code value} isn't a number from {@code min} to {@code max}, otherwise returns it. */
