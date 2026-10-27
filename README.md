@@ -73,7 +73,7 @@ Motor.of(existingTalonFX, false);
 
 ### Moving to a position
 
-`goTo` drives toward the target at `kP * distance` and caps that at `motorSpeed`, or at `motorUpSpeed`/`motorDownSpeed` if you set them. Once the motor is within `threshold` of the target, it switches to `holdSpeed`. It only starts correcting again after drifting `2 × threshold` away, so it doesn't jitter at the edge.
+`goTo` drives toward the target using the `setPID(kP, kI, kD)` gains (in volts, so output = PID / 12) and caps that at `motorSpeed`, or at `motorUpSpeed`/`motorDownSpeed` if you set them. Once the motor is within `threshold` of the target, it switches to `holdSpeed`. It only starts correcting again after drifting `2 × threshold` away, so it doesn't jitter at the edge.
 
 | Method | What it does |
 | --- | --- |
@@ -99,7 +99,7 @@ Motor elevator = new Motor(11)
 controller.y().onTrue(elevator.goToCommand(3)); // same commands as before
 ```
 
-- **Gains are in volts:** `setPID(kP, kI, kD)` sets volts per rotation of error. `setFeedforward(kS, kV, kA)` sets volts to overcome friction, volts per rotation per second, and volts per rotation per second². These are separate from `setKP`, which is only for the default `goTo`.
+- **Gains are in volts:** `setPID(kP, kI, kD)` sets volts per rotation of error. `setFeedforward(kS, kV, kA)` sets volts to overcome friction, volts per rotation per second, and volts per rotation per second². The same gains also drive the default `goTo` loop.
 - **`setGravity(kG, arm)`:** adds `kG` volts to hold the mechanism up. For an arm (`true`), it's scaled by the arm's angle. Position 0 must be the arm sticking straight out sideways, and positions must be in arm rotations (use `setGearRatio`).
 - **Tuning:** a good order is kG until it holds still, then kS, then kV, then kP until it tracks well, then a little kD if it overshoots.
 - **What still applies:** soft limits, continuous mode and rotation limits all still work. `motorSpeed`, `motorUpSpeed`, `motorDownSpeed`, `minSpeed`, `holdSpeed`, `kP` and `accelerationTime` don't apply to Motion Magic moves, but `drive` still uses them.
@@ -260,7 +260,7 @@ Every setter returns the motor, so you can chain them.
 | `setReverseLimitSwitchPosition(Double)` | `null` (off) | Same, for the reverse limit switch. |
 | `setCANcoder(canId, rotorToSensorRatio)` | built-in encoder | Read the position from a CANcoder (see above). |
 | `setMotionMagic(maxVelocity, maxAcceleration)` | off | Runs `goTo` on the TalonFX (see above). |
-| `setPID(kP, kI, kD)` | TalonFX setting (0) | TalonFX gains for Motion Magic and velocity, in volts. |
+| `setPID(kP, kI, kD)` | `1.2, 0, 0` for goTo (TalonFX: 0) | PID gains in volts for goTo, Motion Magic and velocity. |
 | `setFeedforward(kS, kV, kA)` | TalonFX setting (0) | TalonFX feedforward for Motion Magic and velocity, in volts. |
 | `setGravity(kG, arm)` | TalonFX setting (0, elevator) | Volts to hold the mechanism up against gravity. |
 | `setVelocityThreshold(double)` | `1.0` | How close to the velocity target counts as being there, in rotations per second. |
@@ -272,7 +272,7 @@ Every setter returns the motor, so you can chain them.
 | `setMotorDownSpeed(Double)` | `motorSpeed` | Top `goTo` speed toward lower positions. `null` falls back to `motorSpeed`. |
 | `setMinSpeed(double)` | `0.0` | Smallest non-zero speed, so the motor doesn't stall on friction near a target. |
 | `setAccelerationTime(double)` | `0.0` (off) | Seconds from stopped to full speed (see above). |
-| `setKP(double)` | `0.1` | How hard `goTo` pushes: speed = kP × distance. Higher is faster but can overshoot. |
+| `setKP(double)` | `0.1` | Deprecated: same as `setPID(kP * 12, kI, kD)`. |
 | `setThreshold(double)` | `0.025` | How close to the target counts as being there. |
 | `setHoldSpeed(double)` | `0.0` | Output while holding at the target, e.g. a little upward power for an elevator. |
 | `setPositionSupplier(DoubleSupplier)` | TalonFX encoder | Read the position from any other sensor in robot code. Its value is used as-is. For a CANcoder, `setCANcoder` is better because it also works with Motion Magic. |

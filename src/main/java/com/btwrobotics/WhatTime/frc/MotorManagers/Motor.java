@@ -64,7 +64,13 @@ public class Motor extends SubsystemBase {
     private Double motorDownSpeed;
     private double holdSpeed = 0.0;
     private double threshold = 0.025;
-    private double kP = 0.1;
+    /** goTo's PID gains, in volts like the TalonFX's. 1.2 V is the old default of 0.1 output per unit. */
+    private double kP = 1.2;
+    private double kI = 0.0;
+    private double kD = 0.0;
+    /** Running integral and last error for goTo's PID, or NaN before the first loop of a move. */
+    private double integral;
+    private double lastError = Double.NaN;
     /** Limits how fast the output can change, or null when acceleration is off. */
     private SlewRateLimiter accelerationLimiter;
     private DoubleSupplier positionSupplier;
@@ -314,15 +320,16 @@ public class Motor extends SubsystemBase {
     }
 
     /**
-     * Sets how hard {@link #goTo} pushes toward the target: speed = kP * distance to target,
-     * capped at the top speed. Higher gets there faster but can overshoot.
+     * Sets only goTo's proportional gain, as output (-1 to 1) per unit of error. Same as
+     * {@code setPID(kP * 12, kI, kD)} without touching kI and kD.
      *
      * @param kP the proportional gain, 0 or more
      * @return this motor, for chaining
+     * @deprecated use {@link #setPID}, which sets kP, kI and kD in volts
      */
+    @Deprecated
     public Motor setKP(double kP) {
-        this.kP = check(kP, 0.0, Double.POSITIVE_INFINITY, "kP");
-        return this;
+        return setPID(check(kP, 0.0, Double.POSITIVE_INFINITY, "kP") * 12.0, kI, kD);
     }
 
     /**
@@ -437,10 +444,10 @@ public class Motor extends SubsystemBase {
     }
 
     /**
-     * Sets the TalonFX's own PID gains, used by {@link #setVelocity} and by {@link #goTo} once
-     * {@link #setMotionMagic} is on. These are in volts: kP is volts per position unit of error
-     * (or per rotation per second for velocity). They have nothing to do with {@link #setKP},
-     * which is only for the default goTo. All three default to 0.
+     * Sets the PID gains used by {@link #goTo} (both the default loop and Motion Magic) and by
+     * {@link #setVelocity}. These are in volts: kP is volts per position unit of error (or per
+     * rotation per second for velocity), so 12 means full output at 1 unit away. The default goTo
+     * starts at kP 1.2, kI 0, kD 0; the TalonFX's own gains stay 0 until this is called.
      *
      * @param kP volts per unit of error
      * @param kI volts per unit of error times seconds
@@ -448,9 +455,9 @@ public class Motor extends SubsystemBase {
      * @return this motor, for chaining
      */
     public Motor setPID(double kP, double kI, double kD) {
-        config.Slot0.kP = check(kP, 0.0, Double.POSITIVE_INFINITY, "kP");
-        config.Slot0.kI = check(kI, 0.0, Double.POSITIVE_INFINITY, "kI");
-        config.Slot0.kD = check(kD, 0.0, Double.POSITIVE_INFINITY, "kD");
+        this.kP = config.Slot0.kP = check(kP, 0.0, Double.POSITIVE_INFINITY, "kP");
+        this.kI = config.Slot0.kI = check(kI, 0.0, Double.POSITIVE_INFINITY, "kI");
+        this.kD = config.Slot0.kD = check(kD, 0.0, Double.POSITIVE_INFINITY, "kD");
         motor.getConfigurator().apply(config.Slot0);
         return this;
     }
@@ -676,6 +683,8 @@ public class Motor extends SubsystemBase {
         target = MathUtil.clamp(position, minValue, maxValue);
         targetVelocity = null;
         holding = false;
+        integral = 0.0;
+        lastError = Double.NaN;
     }
 
     /**
@@ -934,13 +943,26 @@ public class Motor extends SubsystemBase {
             holding = false;
         }
         if (holding) {
+            integral = 0.0;
+            lastError = Double.NaN;
             return holdSpeed;
         }
+
+        double dt = 0.020;
+        double derivative = Double.isNaN(lastError) ? 0.0 : (error - lastError) / dt;
+        lastError = error;
+        integral += error * dt;
+        double volts = kP * error + kI * integral + kD * derivative;
 
         double maxSpeed = error > 0.0
             ? (motorUpSpeed != null ? motorUpSpeed : motorSpeed)
             : (motorDownSpeed != null ? motorDownSpeed : motorSpeed);
-        return applyMinSpeed(MathUtil.clamp(kP * error, -maxSpeed, maxSpeed));
+        double speed = volts / 12.0;
+        // Stop the integral winding up while the output is capped.
+        if (Math.abs(speed) > maxSpeed) {
+            integral -= error * dt;
+        }
+        return applyMinSpeed(MathUtil.clamp(speed, -maxSpeed, maxSpeed));
     }
 
     /**

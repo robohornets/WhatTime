@@ -212,6 +212,7 @@ public class MotorGroup extends SubsystemBase {
      * @param kP the proportional gain, 0 or more
      * @return this group, for chaining
      */
+    @Deprecated
     public MotorGroup setKP(double kP) {
         return each(m -> m.setKP(kP));
     }
