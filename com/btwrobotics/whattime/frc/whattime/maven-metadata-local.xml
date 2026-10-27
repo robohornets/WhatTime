@@ -3,11 +3,11 @@
   <groupId>com.btwrobotics.whattime.frc</groupId>
   <artifactId>whattime</artifactId>
   <versioning>
-    <latest>v2026.3.0-beta4</latest>
-    <release>v2026.3.0-beta4</release>
+    <latest>v2026.3.0-beta5</latest>
+    <release>v2026.3.0-beta5</release>
     <versions>
-      <version>v2026.3.0-beta4</version>
+      <version>v2026.3.0-beta5</version>
     </versions>
-    <lastUpdated>20261027182001</lastUpdated>
+    <lastUpdated>20261027184458</lastUpdated>
   </versioning>
 </metadata>
