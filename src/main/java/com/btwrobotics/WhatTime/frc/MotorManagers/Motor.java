@@ -28,6 +28,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -71,6 +72,8 @@ public class Motor extends SubsystemBase {
     /** Running integral and last error for goTo's PID, or NaN before the first loop of a move. */
     private double integral;
     private double lastError = Double.NaN;
+    /** FPGA time of the last goTo loop, for measuring how long each loop really took. */
+    private double lastTime;
     /** Limits how fast the output can change, or null when acceleration is off. */
     private SlewRateLimiter accelerationLimiter;
     private DoubleSupplier positionSupplier;
@@ -463,9 +466,10 @@ public class Motor extends SubsystemBase {
     }
 
     /**
-     * Sets the TalonFX's feedforward gains, used along with {@link #setPID}. For
-     * {@link #setVelocity}, kV does most of the work: start at 12 divided by the mechanism's top
-     * speed in rotations per second. All three default to 0.
+     * Sets the feedforward gains, used along with {@link #setPID}. kS also applies to the default
+     * goTo; kV and kA only to Motion Magic and {@link #setVelocity}. For velocity, kV does most of
+     * the work: start at 12 divided by the mechanism's top speed in rotations per second. All
+     * three default to 0.
      *
      * @param kS volts to overcome friction
      * @param kV volts per rotation per second
@@ -481,8 +485,8 @@ public class Motor extends SubsystemBase {
     }
 
     /**
-     * Sets the volts the TalonFX adds to hold a mechanism up against gravity, used along with
-     * {@link #setPID}. For an arm, the push is scaled by the arm's angle, so position 0 must be
+     * Sets the volts added to hold a mechanism up against gravity, used along with
+     * {@link #setPID} in every goTo mode. For an arm, the push is scaled by the arm's angle, so position 0 must be
      * the arm sticking straight out sideways and positions must be in rotations of the arm (use
      * {@link #setGearRatio}). Defaults to 0.
      *
@@ -932,9 +936,16 @@ public class Motor extends SubsystemBase {
         simState.setRotorVelocity(Units.radiansToRotations(sim.getAngularVelocityRadPerSec()) * ratio);
     }
 
-    /** Works out the speed to move toward the target at, or holdSpeed once there. */
+    /**
+     * Works out the speed to move toward the target at, or holdSpeed once there. Uses the PID
+     * gains plus kS and kG from {@link #setFeedforward} and {@link #setGravity}; kV and kA need a
+     * planned speed, so they only apply with Motion Magic or velocity.
+     */
     private double positionSpeed(double position) {
         double error = error(position);
+        double now = Timer.getFPGATimestamp();
+        double dt = now - lastTime;
+        lastTime = now;
 
         // Wider band to leave holding than to enter it, so it doesn't flicker at the edge.
         if (Math.abs(error) <= threshold) {
@@ -943,16 +954,21 @@ public class Motor extends SubsystemBase {
             holding = false;
         }
         if (holding) {
-            integral = 0.0;
+            // Keep the integral (frozen) and gravity push so it doesn't sag out of the band.
             lastError = Double.NaN;
-            return holdSpeed;
+            return MathUtil.clamp(holdSpeed + (kI * integral + gravityVolts(position)) / 12.0, -1.0, 1.0);
         }
 
-        double dt = 0.020;
-        double derivative = Double.isNaN(lastError) ? 0.0 : (error - lastError) / dt;
+        // First loop of a move, or a long gap (e.g. after being disabled): skip I and D this loop.
+        boolean fresh = Double.isNaN(lastError) || dt <= 0.0 || dt > 0.1;
+        if (fresh) {
+            dt = 0.0;
+        }
+        double derivative = fresh ? 0.0 : (error - lastError) / dt;
         lastError = error;
         integral += error * dt;
-        double volts = kP * error + kI * integral + kD * derivative;
+        double volts = kP * error + kI * integral + kD * derivative
+            + config.Slot0.kS * Math.signum(error) + gravityVolts(position);
 
         double maxSpeed = error > 0.0
             ? (motorUpSpeed != null ? motorUpSpeed : motorSpeed)
@@ -963,6 +979,13 @@ public class Motor extends SubsystemBase {
             integral -= error * dt;
         }
         return applyMinSpeed(MathUtil.clamp(speed, -maxSpeed, maxSpeed));
+    }
+
+    /** Volts to hold against gravity from {@link #setGravity}, scaled by angle for an arm. */
+    private double gravityVolts(double position) {
+        return config.Slot0.GravityType == GravityTypeValue.Arm_Cosine
+            ? config.Slot0.kG * Math.cos(Units.rotationsToRadians(position))
+            : config.Slot0.kG;
     }
 
     /**
